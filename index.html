@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouZit - Your AI Content Ecosystem Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="font-['Inter'] bg-gray-50">
+    <!-- Navbar -->
+    <nav class="bg-white fixed w-full z-50 shadow-sm">
+      <div
+        class="container mx-auto px-4 py-4 flex justify-between items-center"
+      >
+        <a href="#" class="text-2xl font-bold text-indigo-600">YouZit</a>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto text-center">
+          <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            Build your content ecosystem in minutes
+          </h1>
+          <p class="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            Say goodbye to endless content planning and scattered platforms.
+            YouZit can help you create a stunning, professional content strategy
+            that <span class="italic">lands engagement</span> and attracts
+            audience.
+          </p>
+
+          <!-- Waitlist Counter -->
+          <div class="flex items-center justify-center gap-2 mb-8">
+            <div class="flex -space-x-2">
+              <img
+                class="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white"
+                src="https://i.pravatar.cc/100?img=1"
+                alt="User"
+              />
+              <img
+                class="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white"
+                src="https://i.pravatar.cc/100?img=2"
+                alt="User"
+              />
+              <img
+                class="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white"
+                src="https://i.pravatar.cc/100?img=3"
+                alt="User"
+              />
+            </div>
+            <span class="text-sm md:text-base text-gray-600"
+              >63 creators are waiting...</span
+            >
+          </div>
+
+          <!-- Email Input -->
+          <div class="max-w-md mx-auto mb-16">
+            <div class="flex flex-col md:flex-row gap-4">
+              <input
+                type="email"
+                placeholder="you@example.com"
+                class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+              />
+              <button
+                class="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+              >
+                Join Waitlist
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Product Screenshot -->
+          <div
+            class="rounded-xl overflow-hidden shadow-2xl border border-gray-200"
+          >
+            <img
+              src="img/youzit.png"
+              alt="YouZit Dashboard"
+              class="w-full h-auto"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Problem Statement -->
+    <section class="py-20 bg-gray-900 text-white">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto text-center mb-16">
+          <h2 class="text-5xl font-bold mb-6">
+            Impress with a content strategy that gets you noticed.
+          </h2>
+          <p class="text-xl text-gray-300">
+            A scattered content approach can hurt your brand's growth. YouZit
+            helps you create a polished, cohesive content strategy that
+            showcases your message effectively and stands out from the noise.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-12 max-w-4xl mx-auto">
+          <!-- Pain Point 1 -->
+          <div class="text-center">
+            <div class="text-4xl mb-4">👩‍💻</div>
+            <h3 class="text-xl font-semibold mb-2">8+ hrs planning content</h3>
+            <p class="text-gray-400">
+              Waste time juggling multiple platforms and tools
+            </p>
+          </div>
+
+          <!-- Pain Point 2 -->
+          <div class="text-center">
+            <div class="text-4xl mb-4">😩</div>
+            <h3 class="text-xl font-semibold mb-2">
+              Struggle with consistency
+            </h3>
+            <p class="text-gray-400">
+              Hard to maintain regular posting schedule
+            </p>
+          </div>
+
+          <!-- Pain Point 3 -->
+          <div class="text-center">
+            <div class="text-4xl mb-4">😔</div>
+            <h3 class="text-xl font-semibold mb-2">Low engagement rates</h3>
+            <p class="text-gray-400">
+              Content doesn't reach or resonate with audience
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center max-w-2xl mx-auto mb-16">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">Our Features</h2>
+          <p class="text-gray-600">
+            Discover how YouZit empowers your content ecosystem
+          </p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <!-- Content Board -->
+          <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+            <div class="mb-6">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                <rect
+                  width="20"
+                  height="20"
+                  x="2"
+                  y="2"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  rx="2"
+                />
+                <path
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  d="M8 7h8M8 12h8M8 17h5"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-3">Content Board</h3>
+            <p class="text-gray-600 text-sm">
+              Manage all your content in one centralized dashboard
+            </p>
+          </div>
+
+          <!-- AI Assistant -->
+          <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+            <div class="mb-6">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="8"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                />
+                <path
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  d="M12 8v4m0 4h.01"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-3">AI Assistant</h3>
+            <p class="text-gray-600 text-sm">
+              Get intelligent suggestions for your content strategy
+            </p>
+          </div>
+
+          <!-- Analytics -->
+          <div
+            class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm opacity-75"
+          >
+            <div class="mb-6">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                <path
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  d="M3 20h18M7 8v12M12 4v16M17 12v8"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-3">Analytics</h3>
+            <p class="text-gray-600 text-sm mb-3">
+              Track performance and insights across all platforms
+            </p>
+            <span
+              class="inline-block px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm"
+              >Coming Soon</span
+            >
+          </div>
+
+          <!-- Schedule -->
+          <div
+            class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm opacity-75"
+          >
+            <div class="mb-6">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                <rect
+                  width="18"
+                  height="16"
+                  x="3"
+                  y="4"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  rx="2"
+                />
+                <path
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  d="M3 10h18M8 2v4M16 2v4"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-3">Schedule</h3>
+            <p class="text-gray-600 text-sm mb-3">
+              Plan and automate your content publishing workflow
+            </p>
+            <span
+              class="inline-block px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm"
+              >Coming Soon</span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="py-20 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <h2 class="text-4xl font-bold text-gray-900 mb-4">
+            Join the waitlist today
+          </h2>
+          <p class="text-xl text-gray-600">
+            Be among the first to build a powerful content strategy that works
+            for you. Choose a plan that fits:
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <!-- Free Plan -->
+          <div class="bg-white p-8 rounded-xl">
+            <h3 class="text-xl font-semibold mb-4">Free</h3>
+            <p class="text-gray-600 mb-6">Perfect for getting started</p>
+
+            <div class="mb-6">
+              <span class="text-4xl font-bold">$0</span>
+              <span class="text-gray-600">/mo</span>
+            </div>
+
+            <ul class="space-y-4 mb-8">
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Content Board
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                5 AI prompts/month
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Basic analytics
+              </li>
+            </ul>
+
+            <input
+              type="email"
+              placeholder="you@example.com"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+            />
+            <button
+              class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+            >
+              Join Waitlist
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Pro Plan -->
+          <div
+            class="bg-white p-8 rounded-xl border-2 border-indigo-600 relative"
+          >
+            <div
+              class="absolute top-0 right-0 bg-indigo-600 text-white px-3 py-1 text-sm rounded-bl-lg rounded-tr-lg"
+            >
+              POPULAR
+            </div>
+            <h3 class="text-xl font-semibold mb-4">Monthly</h3>
+            <p class="text-gray-600 mb-6">Special pricing for early access</p>
+
+            <div class="mb-6">
+              <span class="text-sm text-gray-500 line-through">$9.99</span>
+              <span class="text-4xl font-bold">$4.99</span>
+              <span class="text-gray-600">/mo</span>
+            </div>
+
+            <ul class="space-y-4 mb-8">
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Everything in Free
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                50 AI prompts/month
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Advanced analytics
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Content scheduling
+              </li>
+            </ul>
+
+            <input
+              type="email"
+              placeholder="you@example.com"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+            />
+            <button
+              class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+            >
+              Join Waitlist
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Yearly Plan (replacing Lifetime Plan) -->
+          <div class="bg-white p-8 rounded-xl">
+            <h3 class="text-xl font-semibold mb-4">Yearly</h3>
+            <p class="text-gray-600 mb-6">Save 40% with annual billing</p>
+
+            <div class="mb-6">
+              <span class="text-sm text-gray-500 line-through">$99</span>
+              <span class="text-4xl font-bold">$49</span>
+              <span class="text-gray-600">/year</span>
+            </div>
+
+            <ul class="space-y-4 mb-8">
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Everything in Monthly
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                100 AI prompts/month
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Priority support
+              </li>
+              <li class="flex items-center">
+                <svg
+                  class="w-5 h-5 text-green-500 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Early access to new features
+              </li>
+            </ul>
+
+            <input
+              type="email"
+              placeholder="you@example.com"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+            />
+            <button
+              class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+            >
+              Join Waitlist
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Waitlist -->
+    <section class="py-20 bg-indigo-600">
+      <div class="container mx-auto px-4">
+        <div class="max-w-2xl mx-auto text-center">
+          <h2 class="text-3xl font-bold text-white mb-6">Join the Waitlist</h2>
+          <p class="text-indigo-100 mb-8">
+            Be among the first to experience the future of content creation
+          </p>
+          <form class="flex gap-4 max-w-md mx-auto">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              class="flex-1 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white"
+            />
+            <button
+              class="bg-white text-indigo-600 px-6 py-3 rounded-lg hover:bg-indigo-50 transition"
+            >
+              Join Now
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-12">
+      <div class="container mx-auto px-4">
+        <div class="grid grid-cols-2 max-w-4xl mx-auto gap-8">
+          <!-- Company Info -->
+          <div>
+            <span class="text-lg">YouZit</span>
+            <p class="text-gray-600">
+              Your AI-powered content ecosystem assistant
+            </p>
+            <p class="text-gray-500 text-sm mt-4">
+              Copyright © 2025 - All rights reserved
+            </p>
+          </div>
+
+          <!-- Legal -->
+          <div>
+            <h3 class="text-gray-500 uppercase text-sm mb-4">Legal</h3>
+            <ul class="space-y-2">
+              <li>
+                <a
+                  href="/terms"
+                  class="text-gray-500 hover:text-indigo-600 transition"
+                  >Terms of services</a
+                >
+              </li>
+              <li>
+                <a
+                  href="/privacy"
+                  class="text-gray-500 hover:text-indigo-600 transition"
+                  >Privacy policy</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
