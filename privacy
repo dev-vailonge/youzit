@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy - YouZit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="font-['Inter'] bg-gray-50">
+    <!-- Navbar -->
+    <nav class="bg-white w-full shadow-sm">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+          <a href="index.html" class="text-xl font-semibold">YouZit</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Privacy Content -->
+    <main class="py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-900 mb-8">Privacy Policy</h1>
+
+        <div class="prose prose-indigo max-w-none">
+          <p class="text-gray-600 mb-8">Last updated: February 15, 2025</p>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              1. Information We Collect
+            </h2>
+            <p class="text-gray-600 mb-4">
+              We collect information you provide directly to us when using
+              YouZit:
+            </p>
+            <ul class="list-disc list-inside text-gray-600 space-y-2 mb-4">
+              <li>Account information (email address)</li>
+              <li>Content you create and upload</li>
+              <li>Communications with us</li>
+            </ul>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              2. How We Use Your Information
+            </h2>
+            <p class="text-gray-600 mb-4">
+              We use the information we collect to:
+            </p>
+            <ul class="list-disc list-inside text-gray-600 space-y-2 mb-4">
+              <li>Provide and improve our services</li>
+              <li>Send you technical notices and updates</li>
+              <li>Respond to your comments and questions</li>
+              <li>Monitor and analyze trends and usage</li>
+            </ul>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              3. Information Sharing
+            </h2>
+            <p class="text-gray-600 mb-4">
+              We do not share your personal information with third parties
+              except:
+            </p>
+            <ul class="list-disc list-inside text-gray-600 space-y-2 mb-4">
+              <li>With your consent</li>
+              <li>To comply with legal obligations</li>
+              <li>To protect our rights and prevent fraud</li>
+            </ul>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              4. Data Security
+            </h2>
+            <p class="text-gray-600 mb-4">
+              We take reasonable measures to help protect your personal
+              information from loss, theft, misuse, unauthorized access,
+              disclosure, alteration, and destruction.
+            </p>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              5. Your Rights
+            </h2>
+            <p class="text-gray-600 mb-4">You have the right to:</p>
+            <ul class="list-disc list-inside text-gray-600 space-y-2 mb-4">
+              <li>Access your personal information</li>
+              <li>Correct inaccurate information</li>
+              <li>Request deletion of your information</li>
+              <li>Opt out of marketing communications</li>
+            </ul>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              6. Changes to This Policy
+            </h2>
+            <p class="text-gray-600 mb-4">
+              We may update this privacy policy from time to time. We will
+              notify you of any changes by posting the new privacy policy on
+              this page and updating the "Last updated" date.
+            </p>
+          </section>
+        </div>
+
+        <div class="border-t border-gray-200 mt-16 pt-8">
+          <p class="text-gray-500 text-sm">
+            For any questions about this Privacy Policy, please contact us at:
+            <a
+              href="mailto:support@youzitapp.com"
+              class="text-indigo-600 hover:text-indigo-700"
+              >support@youzitapp.com</a
+            >
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-8">
+      <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+        Copyright © 2025 YouZit - All rights reserved
+      </div>
+    </footer>
+  </body>
+</html>
