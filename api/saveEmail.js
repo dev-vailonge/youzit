@@ -1,12 +1,22 @@
 export default async function handler(req, res) {
+    // Permitir requisições de qualquer origem (Ajuste para segurança em produção)
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Tratamento da requisição OPTIONS (preflight)
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
+
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Método não permitido" });
     }
 
     const { email } = req.body;
     const githubToken = process.env.GITHUB_TOKEN; // Variável de ambiente
-    const repoOwner = "dev-vailonge";
-    const repoName = "youzit";
+    const repoOwner = "SEU_USERNAME";
+    const repoName = "SEU_REPOSITORIO";
     const filePath = "emails.csv";
 
     // Buscar o conteúdo atual do arquivo
