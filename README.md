@@ -15,5 +15,3 @@ YouZit is a modern web application that helps content creators build and manage 
 - Tailwind CSS
 - JavaScript
 - Vercel (API & Hosting)
-
-## Project Structure
