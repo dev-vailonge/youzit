@@ -15,8 +15,8 @@ export default async function handler(req, res) {
 
     const { email } = req.body;
     const githubToken = process.env.GITHUB_TOKEN; // Variável de ambiente
-    const repoOwner = "SEU_USERNAME";
-    const repoName = "SEU_REPOSITORIO";
+    const repoOwner = "dev-vailonge";
+    const repoName = "youzit";
     const filePath = "emails.csv";
 
     // Buscar o conteúdo atual do arquivo
