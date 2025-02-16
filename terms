@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terms of Service - YouZit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="font-['Inter'] bg-gray-50">
+    <!-- Navbar -->
+    <nav class="bg-white w-full shadow-sm">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+          <a href="index.html" class="text-xl font-semibold">YouZit</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Terms Content -->
+    <main class="py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-900 mb-8">Terms of Service</h1>
+
+        <div class="prose prose-indigo max-w-none">
+          <p class="text-gray-600 mb-8">Last updated: February 15, 2025</p>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              1. Introduction
+            </h2>
+            <p class="text-gray-600 mb-4">
+              Welcome to YouZit. By using our service, you agree to these terms.
+              Please read them carefully.
+            </p>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              2. Using YouZit
+            </h2>
+            <p class="text-gray-600 mb-4">
+              You must follow any policies made available to you within the
+              Service.
+            </p>
+            <ul class="list-disc list-inside text-gray-600 space-y-2 mb-4">
+              <li>Don't misuse our Services</li>
+              <li>Use our Services only as permitted by law</li>
+              <li>
+                We may suspend or stop providing our Services to you if you do
+                not comply with our terms or policies
+              </li>
+            </ul>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              3. Privacy & Copyright Protection
+            </h2>
+            <p class="text-gray-600 mb-4">
+              YouZit's privacy policies explain how we treat your personal data
+              and protect your privacy when you use our Services.
+            </p>
+            <p class="text-gray-600 mb-4">
+              We respond to notices of alleged copyright infringement and
+              terminate accounts of repeat infringers according to the process
+              set out in the U.S. Digital Millennium Copyright Act.
+            </p>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              4. Your Content in our Services
+            </h2>
+            <p class="text-gray-600 mb-4">
+              Some of our Services allow you to upload, submit, store, send or
+              receive content. You retain ownership of any intellectual property
+              rights that you hold in that content.
+            </p>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              5. Modifying and Terminating our Services
+            </h2>
+            <p class="text-gray-600 mb-4">
+              We are constantly changing and improving our Services. We may add
+              or remove functionalities or features, and we may suspend or stop
+              a Service altogether.
+            </p>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              6. Liability for our Services
+            </h2>
+            <p class="text-gray-600 mb-4">
+              When permitted by law, YouZit and its suppliers and distributors
+              will not be responsible for lost profits, revenues, or data,
+              financial losses or indirect, special, consequential, exemplary,
+              or punitive damages.
+            </p>
+          </section>
+
+          <section class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+              7. Business uses of our Services
+            </h2>
+            <p class="text-gray-600 mb-4">
+              If you are using our Services on behalf of a business, that
+              business accepts these terms. It will hold harmless and indemnify
+              YouZit and its affiliates, officers, agents, and employees from
+              any claim, suit or action arising from or related to the use of
+              the Services.
+            </p>
+          </section>
+        </div>
+
+        <div class="border-t border-gray-200 mt-16 pt-8">
+          <p class="text-gray-500 text-sm">
+            For any questions about these Terms of Service, please contact us
+            at:
+            <a
+              href="mailto:support@youzitapp.com"
+              class="text-indigo-600 hover:text-indigo-700"
+              >support@youzitapp.com</a
+            >
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-8">
+      <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+        Copyright © 2025 YouZit - All rights reserved
+      </div>
+    </footer>
+  </body>
+</html>
