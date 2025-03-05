@@ -411,7 +411,29 @@ export default async function handler(
   const sendResponse = (statusCode: number, data: any) => {
     if (!hasResponded) {
       hasResponded = true;
-      res.status(statusCode).json(data);
+      try {
+        // Ensure the response is properly formatted as JSON
+        const jsonResponse = {
+          ...data,
+          timestamp: new Date().toISOString(),
+          environment: process.env.VERCEL_ENV || 'development'
+        };
+
+        // Set proper content type header
+        res.setHeader('Content-Type', 'application/json');
+        
+        // Send the response
+        res.status(statusCode).json(jsonResponse);
+      } catch (error) {
+        // If JSON serialization fails, send a fallback error response
+        console.error('Error sending response:', error);
+        res.status(500).json({
+          error: 'RESPONSE_ERROR',
+          message: 'Erro ao processar resposta',
+          details: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   };
 
@@ -427,6 +449,7 @@ export default async function handler(
       "Access-Control-Allow-Headers",
       "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
     );
+    res.setHeader('Content-Type', 'application/json');
 
     // Handle preflight request
     if (req.method === "OPTIONS") {
@@ -435,7 +458,11 @@ export default async function handler(
 
     // Validate request method
     if (req.method !== "POST") {
-      return sendResponse(405, { error: "Method not allowed" });
+      return sendResponse(405, {
+        error: "METHOD_NOT_ALLOWED",
+        message: "Method not allowed",
+        details: `${req.method} is not supported`
+      });
     }
 
     console.error("API handler started");
@@ -451,7 +478,11 @@ export default async function handler(
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
       console.error("Missing or invalid authorization header");
-      return sendResponse(401, { error: "Missing authorization header" });
+      return sendResponse(401, {
+        error: "UNAUTHORIZED",
+        message: "Missing or invalid authorization header",
+        details: "Authorization header must start with Bearer"
+      });
     }
 
     const token = authHeader.split(" ")[1];
@@ -689,10 +720,11 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
           return sendResponse(500, {
             error: "OPENAI_ERROR",
             message: "Erro ao gerar conteúdo",
-            details: error.message || "Unknown error",
+            details: error.message || "Unknown OpenAI error",
             type: error.type || 'unknown',
             isTimeout: error.message === 'OpenAI request timed out',
-            status: error.status || 500
+            status: error.status || 500,
+            errorId: Date.now().toString(36) + Math.random().toString(36).substr(2)
           });
         }
 
@@ -714,14 +746,16 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
         return sendResponse(500, {
           error: "REQUEST_SETUP_ERROR",
           message: "Erro ao configurar requisição",
-          details: error.message || "Unknown error"
+          details: error.message || "Unknown setup error",
+          type: error.name || 'unknown'
         });
       }
 
       if (!completion?.choices?.[0]?.message?.content) {
         console.error("No content in OpenAI response");
         return sendResponse(500, {
-          error: "No content generated",
+          error: "NO_CONTENT_ERROR",
+          message: "Nenhum conteúdo foi gerado",
           details: "The AI model did not return any content"
         });
       }
@@ -915,6 +949,7 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
 
         // After the loop, return the first prompt's ID
         return sendResponse(200, {
+          success: true,
           id: firstPromptId,
           script_result: cleanScriptResult(result),
           content_analysis: contentAnalysis,
@@ -922,14 +957,22 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
         });
       } catch (dbError: any) {
         console.error("Database operation failed:", dbError);
-        throw new Error(`Database error: ${dbError.message}`);
+        return sendResponse(500, {
+          error: "DATABASE_ERROR",
+          message: "Erro ao salvar no banco de dados",
+          details: dbError.message || "Unknown database error",
+          type: dbError.name || 'unknown',
+          errorId: Date.now().toString(36) + Math.random().toString(36).substr(2)
+        });
       }
     } catch (error: any) {
       console.error("Unexpected error:", error);
       return sendResponse(500, {
         error: "UNEXPECTED_ERROR",
-        message: "An unexpected error occurred",
+        message: "Ocorreu um erro inesperado",
         details: error.message || "Unknown error",
+        type: error.name || 'unknown',
+        errorId: Date.now().toString(36) + Math.random().toString(36).substr(2)
       });
     }
   } catch (error: any) {
@@ -942,8 +985,9 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
     return sendResponse(500, {
       error: "SERVER_ERROR",
       message: "Erro interno no servidor",
-      details: error.message || "Unknown error",
-      type: error.name || 'unknown'
+      details: error.message || "Unknown server error",
+      type: error.name || 'unknown',
+      errorId: Date.now().toString(36) + Math.random().toString(36).substr(2)
     });
   }
 }
