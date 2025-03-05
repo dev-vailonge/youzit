@@ -135,6 +135,12 @@ export default function Platforms() {
         return;
       }
 
+      if (!session.user.email) {
+        console.error("User email missing");
+        toast.error("Erro: E-mail do usuário não encontrado");
+        return;
+      }
+
       if (selectedPlatform.length === 0) {
         console.error("No platform selected");
         toast.error("Por favor, selecione pelo menos uma plataforma");
@@ -156,6 +162,7 @@ export default function Platforms() {
         prompt: prompt.toString(),
         platforms: [selectedPlatform],
         userId: session.user.id,
+        email: session.user.email,
         ...(contextPrompt && { contextPrompt }),
       };
 
