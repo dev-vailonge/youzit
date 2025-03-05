@@ -142,11 +142,20 @@ export default function Platforms() {
 
       setLoading(true);
 
+      // Get stored context if available
+      const storedContext = sessionStorage.getItem("currentPrompt");
+      const contextPrompt = storedContext ? {
+        title: storedContext,
+        content: "",
+        viralScore: 0
+      } : undefined;
+
       // Prepare the request body
       const requestBody = {
         prompt: prompt.toString(), // Ensure prompt is a string
         platforms: [selectedPlatform],
         userId: session.user.id,
+        ...(contextPrompt && { contextPrompt }), // Only include contextPrompt if it exists
       };
 
       // Log the request details (safely)
@@ -155,6 +164,7 @@ export default function Platforms() {
         promptLength: requestBody.prompt.length,
         platform: requestBody.platforms[0],
         hasUserId: !!requestBody.userId,
+        hasContext: !!contextPrompt,
       });
 
       // Get the base URL based on the environment
