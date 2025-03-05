@@ -21,7 +21,6 @@ interface GenerateRequest {
   prompt: string;
   platforms: string[];
   userId: string;
-  email: string;
   contextPrompt?: {
     title: string;
     content: string;
@@ -234,7 +233,6 @@ export default async function handler(
         promptLength: body.prompt?.length,
         platforms: body.platforms?.length,
         hasUserId: !!body.userId,
-        hasEmail: !!body.email,
       });
     } catch (e) {
       console.error("Failed to parse request body:", e);
@@ -245,16 +243,15 @@ export default async function handler(
     }
 
     // Validate required fields
-    if (!body.prompt || !body.platforms || !body.userId || !body.email) {
+    if (!body.prompt || !body.platforms || !body.userId) {
       console.error("Missing required fields:", {
         hasPrompt: !!body.prompt,
         hasPlatforms: !!body.platforms,
         hasUserId: !!body.userId,
-        hasEmail: !!body.email,
       });
       return sendResponse(400, {
         error: "Missing required fields",
-        details: "Please provide all required fields: prompt, platforms, userId, and email"
+        details: "Please provide all required fields: prompt, platforms, and userId"
       });
     }
 
@@ -270,7 +267,7 @@ export default async function handler(
       });
     }
 
-    const { prompt, platforms, userId, contextPrompt, email } = body;
+    const { prompt, platforms, userId, contextPrompt } = body;
 
     // Normalize the prompt by trimming and converting to lowercase
     const normalizedPrompt = prompt.trim().toLowerCase();
