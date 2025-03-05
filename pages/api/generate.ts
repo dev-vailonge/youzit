@@ -299,7 +299,7 @@ export default async function handler(
       try {
         console.error("OpenAI request configuration:", {
           model: "gpt-3.5-turbo",
-          maxTokens: 4000,
+          maxTokens: 2000,
           temperature: 0.7,
           promptLength: prompt.length,
           platformsCount: platforms.length,
@@ -307,20 +307,11 @@ export default async function handler(
         });
 
         completion = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo-16k", // Using 16k model for larger context
+          model: "gpt-3.5-turbo",
           messages: [
             {
               role: "system",
-              content: `You are an expert content creator who MUST follow exact formatting requirements. Generate detailed, platform-specific content following these strict structures:
-
-===== PLATFORM FORMATS =====
-
-${platforms
-  .map((platform) => getPlatformFormat(platform))
-  .filter(Boolean)
-  .join("\n\n")}
-
-===== RESPONSE FORMAT =====
+              content: `You are an expert content creator. Generate content in Portuguese following this format:
 
 For [Platform Name]:
 
@@ -339,45 +330,29 @@ Pontuação Viral: [0-100]
 ## content analyses ends ##
 
 ## script results start ##
-[DETAILED content following exact platform structure above]
-## script results ends ##
-
-IMPORTANT:
-- MUST include numeric scores (X/10) for each analysis point
-- DO NOT summarize or shorten content
-- MUST follow complete structure for each platform
-- Include all sections as outlined
-- Maintain platform-specific tone and style
-- ALL content MUST be in Portuguese, including section titles and scores
-- MUST use the exact section markers (##) as shown above
-- DO NOT use English terms, translate everything to Portuguese`,
+[Content following platform structure]
+## script results ends ##`,
             },
             {
               role: "user",
-              content: `Generate detailed content about "${prompt}" for these platforms: ${platforms.join(
-                ", "
-              )}.
-
-REQUIREMENTS:
-1. Follow EXACT format for each platform
-2. Write FULL scripts (no summaries)
-3. Include ALL sections with their markers
-4. Make content IMMEDIATELY usable
-5. Ensure viral potential
-6. Keep the tone and style consistent with the original
-7. MUST use the section markers (##) exactly as shown
-
-The content should be ready to use without additional editing.`,
-            },
+              content: `Create content about "${prompt}" for ${platforms.join(", ")}.
+Platform format: ${platforms.map((platform) => getPlatformFormat(platform)).join("\n")}
+Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
+            }
           ],
           temperature: 0.7,
-          max_tokens: 4000,
+          max_tokens: 2000,
         });
 
-        console.error("OpenAI response received:", {
-          hasChoices: !!completion.choices?.length,
-          firstChoiceHasContent: !!completion.choices?.[0]?.message?.content,
-          responseLength: completion.choices?.[0]?.message?.content?.length || 0,
+        // Log the token usage immediately
+        console.error("OpenAI API Response Details:", {
+          model: "gpt-3.5-turbo",
+          prompt_tokens: completion.usage?.prompt_tokens,
+          completion_tokens: completion.usage?.completion_tokens,
+          total_tokens: completion.usage?.total_tokens,
+          max_tokens_limit: 2000,
+          has_content: !!completion.choices?.[0]?.message?.content,
+          content_length: completion.choices?.[0]?.message?.content?.length || 0
         });
 
       } catch (openAiError: any) {
