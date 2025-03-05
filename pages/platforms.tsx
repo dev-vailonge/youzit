@@ -57,37 +57,38 @@ export default function Platforms() {
 
   useEffect(() => {
     const checkUser = async () => {
+      // First check session
       const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error || !user) {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        toast.error("Por favor, faça login para continuar");
         router.push("/signin");
         return;
       }
+
+      // Then get user details
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("User error:", userError);
+        toast.error("Erro ao carregar dados do usuário");
+        router.push("/signin");
+        return;
+      }
+
+      console.log("User data:", { id: user.id, email: user.email });
       setUser(user);
     };
 
     checkUser();
   }, [router]);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (error || !session) {
-        console.error("Session error:", error);
-        toast.error("Por favor, faça login para continuar");
-        router.push("/signin");
-        return;
-      }
-    };
-
-    checkSession();
-  }, []);
 
   const togglePlatform = (platformId: string) => {
     setSelectedPlatform(platformId === selectedPlatform ? "" : platformId);

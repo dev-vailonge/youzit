@@ -44,14 +44,33 @@ export default function PromptList() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      // First check session
       const {
         data: { session },
-        error,
+        error: sessionError,
       } = await supabase.auth.getSession();
-      if (error || !session) {
+
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        toast.error("Por favor, faça login para continuar");
         router.push("/signin");
         return;
       }
+
+      // Then get user details
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("User error:", userError);
+        toast.error("Erro ao carregar dados do usuário");
+        router.push("/signin");
+        return;
+      }
+
+      console.log("User data:", { id: user.id, email: user.email });
       setLoading(false);
     };
 
@@ -61,11 +80,12 @@ export default function PromptList() {
   useEffect(() => {
     const fetchPrompts = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      if (!user) {
-        router.push("/signin");
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
         return;
       }
 
@@ -73,7 +93,7 @@ export default function PromptList() {
       const { data: promptsData, error } = await supabase
         .from("prompts")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .eq("hidden", false)
         .order("created_at", { ascending: false });
 
