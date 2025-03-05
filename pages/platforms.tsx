@@ -109,38 +109,30 @@ export default function Platforms() {
 
   const handleGenerate = async () => {
     try {
-      console.log("Starting generate process...");
-      console.log("Current state:", {
-        prompt,
-        selectedPlatform,
-        loading,
-        user: user ? "present" : "missing",
-      });
+      // Check if we have a prompt from the URL
+      if (!router.isReady) {
+        console.error("Router not ready");
+        return;
+      }
+
+      if (!prompt) {
+        console.error("No prompt in URL");
+        toast.error("Por favor, insira um prompt");
+        return;
+      }
 
       // Check session first
-      console.log("Checking session...");
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (sessionError) {
+      if (sessionError || !session) {
         console.error("Session error:", sessionError);
-        toast.error("Erro ao verificar sessão");
-        return;
-      }
-
-      if (!session) {
-        console.error("No session found");
         toast.error("Por favor, faça login para continuar");
         router.push("/signin");
         return;
       }
-
-      console.log("Session found:", {
-        userId: session.user.id,
-        hasAccessToken: !!session.access_token,
-      });
 
       if (selectedPlatform.length === 0) {
         console.error("No platform selected");
@@ -148,37 +140,24 @@ export default function Platforms() {
         return;
       }
 
-      if (!prompt) {
-        console.error("No prompt provided");
-        toast.error("Por favor, insira um prompt");
-        return;
-      }
-
-      console.log("Generating content with:", {
-        prompt,
-        selectedPlatform,
-        userId: session.user.id,
-        session: {
-          access_token: session.access_token ? "present" : "missing",
-          user: {
-            id: session.user.id,
-            email: session.user.email,
-          },
-        },
-      });
-
       setLoading(true);
 
+      // Prepare the request body
       const requestBody = {
-        prompt: prompt,
+        prompt: prompt.toString(), // Ensure prompt is a string
         platforms: [selectedPlatform],
         userId: session.user.id,
       };
 
-      console.log("Request body:", requestBody);
+      // Log the request details (safely)
+      console.error("Making request with:", {
+        hasPrompt: !!requestBody.prompt,
+        promptLength: requestBody.prompt.length,
+        platform: requestBody.platforms[0],
+        hasUserId: !!requestBody.userId,
+      });
 
       // Call the generate API with auth token
-      console.log("Making API request...");
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -188,40 +167,43 @@ export default function Platforms() {
         body: JSON.stringify(requestBody),
       });
 
-      console.log("API Response status:", response.status);
+      // Log the response status
+      console.error("Response status:", response.status);
 
       if (!response.ok) {
-        let errorData;
+        let errorMessage = "Failed to generate content";
         try {
-          errorData = await response.json();
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+          console.error("Error details:", errorData);
         } catch (e) {
           console.error("Failed to parse error response:", e);
-          errorData = { message: "Failed to parse error response" };
         }
 
-        console.error("API Error Response:", {
+        // Log the full error context
+        console.error("Error context:", {
           status: response.status,
           statusText: response.statusText,
-          errorData,
-          requestBody,
-          headers: {
-            authorization: response.headers.get("authorization") ? "present" : "missing",
-            contentType: response.headers.get("content-type"),
-          },
+          hasPrompt: !!requestBody.prompt,
+          promptLength: requestBody.prompt.length,
+          platform: requestBody.platforms[0],
+          hasUserId: !!requestBody.userId,
         });
 
-        throw new Error(errorData.message || "Failed to generate content");
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log("Generate API Response:", {
-        id: data.id,
-        contentId: data.contentId,
-        fullData: data,
+      
+      // Log successful response
+      console.error("Success response:", {
+        hasId: !!data.id,
+        hasContent: !!data.script_result,
+        hasAnalysis: !!data.content_analysis,
       });
 
       // Store the results in session storage
-      sessionStorage.setItem("currentPrompt", prompt as string);
+      sessionStorage.setItem("currentPrompt", prompt.toString());
       sessionStorage.setItem(
         "contentResults",
         JSON.stringify([
@@ -237,16 +219,18 @@ export default function Platforms() {
       // Use consistent id field from response
       const contentId = data.id;
       if (contentId) {
-        console.log("Setting content ID:", contentId);
         sessionStorage.setItem("contentId", contentId);
         router.push(`/content?id=${contentId}`);
       } else {
-        console.error("Missing content ID in response:", data);
         throw new Error("No content ID received in response");
       }
     } catch (error) {
-      console.error("Error in handleGenerate:", error);
-      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+      // Log the full error
+      console.error("Full error:", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : "No stack trace",
+      });
+      
       toast.error(
         error instanceof Error ? error.message : "Falha ao gerar conteúdo"
       );
