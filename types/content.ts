@@ -1,7 +1,7 @@
 export interface ContentDetails {
   id: string;
   title: string;
-  platform: {
+  platform: string | {
     id: string;
     name: string;
   };
@@ -18,4 +18,12 @@ export interface ContentDetails {
   user_id?: string;
   created_at?: string;
   prompt_id: string;
+  prompt?: {
+    id: string;
+    prompt_text: string;
+    script_result: string;
+    viral_score: number;
+    content_analysis: any[];
+    platform: any;
+  };
 }

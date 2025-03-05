@@ -86,8 +86,8 @@ export default function ContentBoard() {
   const [user, setUser] = useState<any>(null);
   const [columns, setColumns] = useState<BoardColumn[]>([
     { title: "Rascunho", status: "draft", items: [], count: 0 },
-    { title: "A Fazer", status: "todo", items: [], count: 0 },
-    { title: "Em Andamento", status: "in_progress", items: [], count: 0 },
+    { title: "A Fazer", status: "to-do", items: [], count: 0 },
+    { title: "Em Andamento", status: "in-progress", items: [], count: 0 },
     { title: "Concluído", status: "done", items: [], count: 0 },
   ]);
   const router = useRouter();
@@ -195,8 +195,8 @@ export default function ContentBoard() {
       // Validate the status value
       const validStatuses: ContentStatus[] = [
         "draft",
-        "todo",
-        "in_progress",
+        "to-do",
+        "in-progress",
         "done",
       ];
       if (!validStatuses.includes(destination.droppableId as ContentStatus)) {
@@ -289,9 +289,9 @@ export default function ContentBoard() {
     try {
       // Store the content data directly in session storage
       const contentResult = {
-        platform: item.platform.name,
+        platform: typeof item.platform === 'string' ? item.platform : item.platform.name,
         content: item.prompt?.script_result || item.content,
-        viralScore: item.prompt?.viral_score || item.viral_score,
+        viralScore: item.prompt?.viral_score || item.viralScore,
         contentAnalysis: [], // Initialize empty array for content analysis
       };
 
@@ -339,7 +339,7 @@ export default function ContentBoard() {
         content:
           selectedContent.prompt?.script_result || selectedContent.content,
         viralScore:
-          selectedContent.prompt?.viral_score || selectedContent.viral_score,
+          selectedContent.prompt?.viral_score || selectedContent.viralScore,
         platform: {
           id:
             typeof selectedContent.platform === "string"
@@ -444,9 +444,9 @@ export default function ContentBoard() {
                           className={`w-2 h-2 rounded-full ${
                             column.status === "draft"
                               ? "bg-gray-400"
-                              : column.status === "todo"
+                              : column.status === "to-do"
                               ? "bg-blue-400"
-                              : column.status === "in_progress"
+                              : column.status === "in-progress"
                               ? "bg-yellow-400"
                               : "bg-green-400"
                           }`}
@@ -541,12 +541,12 @@ export default function ContentBoard() {
                                 {/* Footer with Viral Score and Context Button */}
                                 <div className="flex justify-end items-center gap-2">
                                   {(item.prompt?.viral_score != null ||
-                                    item.viral_score != null) && (
+                                    item.viralScore != null) && (
                                     <>
                                       <span className="text-xs text-gray-500">
                                         ⚡{" "}
                                         {item.prompt?.viral_score ||
-                                          item.viral_score}
+                                          item.viralScore}
                                       </span>
                                       <Tooltip text="Use este conteúdo como contexto para novas gerações">
                                         <button

@@ -102,6 +102,7 @@ export default function PromptList() {
             id: prompt.platform.toLowerCase(),
           },
         ],
+        content_board: prompt.content_board || [],
       }));
 
       setPrompts(processedPrompts);
