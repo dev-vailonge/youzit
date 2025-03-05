@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import OpenAI from "openai";
-import { createPagesServerClient } from "@supabase/auth-helpers-nextjs";
 import { createClient } from "@supabase/supabase-js";
 
 // Validate environment variables
@@ -153,7 +152,7 @@ export default async function handler(
 
   // Enable CORS
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET,OPTIONS,PATCH,DELETE,POST,PUT"
@@ -196,20 +195,7 @@ export default async function handler(
           Authorization: `Bearer ${token}`,
         },
       },
-      db: {
-        schema: "public",
-      },
     });
-
-    // Add error logging for database connection
-    try {
-      const { error } = await supabase.from("prompts").select("id").limit(1);
-      if (error) {
-        console.error("Database connection test failed:", error);
-      }
-    } catch (error) {
-      console.error("Failed to connect to database:", error);
-    }
 
     // Verify the token
     const {
@@ -249,35 +235,33 @@ export default async function handler(
       });
     }
 
-    const { prompt, platforms, userId, contextPrompt, email } = body;
-
     // Validate required fields
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt is required" });
-    }
-
-    if (!Array.isArray(platforms) || platforms.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "At least one platform is required" });
-    }
-
-    if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
-    }
-
-    if (!email) {
-      return res.status(400).json({ error: "E-mail é obrigatório" });
-    }
-
-    // Check user authentication
-    if (user.id !== userId) {
-      return res.status(403).json({ 
-        error: "User ID mismatch",
-        expected: user.id,
-        received: userId
+    if (!body.prompt || !body.platforms || !body.userId || !body.email) {
+      console.error("Missing required fields:", {
+        hasPrompt: !!body.prompt,
+        hasPlatforms: !!body.platforms,
+        hasUserId: !!body.userId,
+        hasEmail: !!body.email,
+      });
+      return res.status(400).json({
+        error: "Missing required fields",
+        details: "Please provide all required fields: prompt, platforms, userId, and email"
       });
     }
+
+    // Verify user ID matches
+    if (body.userId !== user.id) {
+      console.error("User ID mismatch:", {
+        requestUserId: body.userId,
+        sessionUserId: user.id
+      });
+      return res.status(403).json({
+        error: "Unauthorized",
+        details: "User ID does not match authenticated user"
+      });
+    }
+
+    const { prompt, platforms, userId, contextPrompt, email } = body;
 
     // Normalize the prompt by trimming and converting to lowercase
     const normalizedPrompt = prompt.trim().toLowerCase();
