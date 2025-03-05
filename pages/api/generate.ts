@@ -295,12 +295,23 @@ export default async function handler(
 
       // Continue with OpenAI generation regardless of search errors
       console.log("Starting OpenAI completion");
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert content creator who MUST follow exact formatting requirements. Generate detailed, platform-specific content following these strict structures:
+      let completion;
+      try {
+        console.error("OpenAI request configuration:", {
+          model: "gpt-3.5-turbo",
+          maxTokens: 4000,
+          temperature: 0.7,
+          promptLength: prompt.length,
+          platformsCount: platforms.length,
+          hasContextPrompt: !!contextPrompt
+        });
+
+        completion = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo-16k", // Using 16k model for larger context
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert content creator who MUST follow exact formatting requirements. Generate detailed, platform-specific content following these strict structures:
 
 ===== PLATFORM FORMATS =====
 
@@ -339,37 +350,13 @@ IMPORTANT:
 - Maintain platform-specific tone and style
 - ALL content MUST be in Portuguese, including section titles and scores
 - MUST use the exact section markers (##) as shown above
-- DO NOT use English terms, translate everything to Portuguese
-
-Example of the EXACT format to follow:
-
-## viral score start ##
-Pontuação Viral: 85
-## viral score ends ##
-
-## content analyses start ##
-- Potencial de Engajamento (Pontuação: 8/10): [Explicação em português]
-...
-## content analyses ends ##
-
-${
-  contextPrompt
-    ? `
-Consider this previous content as context:
-Title: ${contextPrompt.title}
-Content: ${contextPrompt.content}
-Viral Score: ${contextPrompt.viralScore}
-
-The title of the previous content is: ${contextPrompt.title}, use this this in your generated output as well, maintaining the same tone and style.
-`
-    : ""
-}`,
-          },
-          {
-            role: "user",
-            content: `Generate detailed content about "${prompt}" for these platforms: ${platforms.join(
-              ", "
-            )}.
+- DO NOT use English terms, translate everything to Portuguese`,
+            },
+            {
+              role: "user",
+              content: `Generate detailed content about "${prompt}" for these platforms: ${platforms.join(
+                ", "
+              )}.
 
 REQUIREMENTS:
 1. Follow EXACT format for each platform
@@ -378,18 +365,41 @@ REQUIREMENTS:
 4. Make content IMMEDIATELY usable
 5. Ensure viral potential
 6. Keep the tone and style consistent with the original
-7. Ensure the new content naturally builds upon the provided context
-8. MUST use the section markers (##) exactly as shown
+7. MUST use the section markers (##) exactly as shown
 
 The content should be ready to use without additional editing.`,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
-      });
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 4000,
+        });
 
-      if (!completion.choices[0]?.message?.content) {
-        throw new Error("No content generated");
+        console.error("OpenAI response received:", {
+          hasChoices: !!completion.choices?.length,
+          firstChoiceHasContent: !!completion.choices?.[0]?.message?.content,
+          responseLength: completion.choices?.[0]?.message?.content?.length || 0,
+        });
+
+      } catch (openAiError: any) {
+        console.error("OpenAI API Error:", {
+          error: openAiError.message,
+          type: openAiError.type,
+          code: openAiError.code,
+          param: openAiError.param,
+          stack: openAiError.stack,
+        });
+        return res.status(500).json({
+          error: "Failed to generate content",
+          details: openAiError.message,
+        });
+      }
+
+      if (!completion?.choices?.[0]?.message?.content) {
+        console.error("No content in OpenAI response");
+        return res.status(500).json({
+          error: "No content generated",
+          details: "The AI model did not return any content"
+        });
       }
 
       const result = completion.choices[0].message.content;
