@@ -358,6 +358,7 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
             setTimeout(() => reject(new Error('OpenAI request timed out')), timeoutMs);
           });
 
+          console.error('Starting OpenAI API call...');
           completion = await Promise.race([
             openai.chat.completions.create({
               model: "gpt-3.5-turbo",
@@ -367,46 +368,50 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
             }),
             timeoutPromise
           ]) as OpenAI.Chat.Completions.ChatCompletion;
+          console.error('OpenAI API call completed successfully');
 
-          // Log successful response details
-          console.error("OpenAI API Response Details:", {
-            success: true,
-            model: completion.model,
-            prompt_tokens: completion.usage?.prompt_tokens,
-            completion_tokens: completion.usage?.completion_tokens,
-            total_tokens: completion.usage?.total_tokens,
-            max_tokens_limit: 2000,
-            has_content: !!completion.choices?.[0]?.message?.content,
-            content_length: completion.choices?.[0]?.message?.content?.length || 0,
-            finish_reason: completion.choices?.[0]?.finish_reason
+        } catch (error: any) {
+          // Log the raw error first
+          console.error('Raw OpenAI error:', error);
+          
+          // Then log structured error information
+          console.error('OpenAI API Error Details:', {
+            name: error.name,
+            message: error.message,
+            type: error.type,
+            status: error.status,
+            stack: error.stack?.split('\n'),
+            isTimeout: error.message === 'OpenAI request timed out',
+            isAxiosError: error.isAxiosError,
+            response: error.response ? {
+              status: error.response.status,
+              statusText: error.response.statusText,
+              data: error.response.data
+            } : null
           });
 
-        } catch (openAiError: any) {
-          // Log detailed error information
-          console.error("OpenAI API Error Details:", {
-            error: openAiError.message,
-            type: openAiError.type,
-            code: openAiError.code,
-            param: openAiError.param,
-            stack: openAiError.stack,
-            status: openAiError.status,
-            statusText: openAiError.statusText,
-            headers: openAiError.headers,
-            request: {
-              model: "gpt-3.5-turbo",
-              temperature: 0.7,
-              max_tokens: 2000,
-            }
-          });
-
-          // Return a more specific error message
+          // Return a detailed error response
           return res.status(500).json({
             error: "Erro ao gerar conteúdo",
-            details: `OpenAI API Error: ${openAiError.message}`,
-            errorType: openAiError.type || 'unknown',
-            errorCode: openAiError.code || 'unknown'
+            details: error.message,
+            type: error.type || 'unknown',
+            isTimeout: error.message === 'OpenAI request timed out',
+            status: error.status
           });
         }
+
+        // Log successful completion details
+        console.error('OpenAI completion details:', {
+          model: completion.model,
+          object: completion.object,
+          created: completion.created,
+          usage: completion.usage,
+          choices: completion.choices?.map(c => ({
+            finish_reason: c.finish_reason,
+            hasContent: !!c.message?.content,
+            contentLength: c.message?.content?.length
+          }))
+        });
 
       } catch (error: any) {
         console.error("Unexpected error during OpenAI request setup:", error);
