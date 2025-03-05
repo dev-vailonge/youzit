@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // Validate environment variables
 if (!process.env.OPENAI_API_KEY) {
@@ -297,21 +298,11 @@ export default async function handler(
       console.log("Starting OpenAI completion");
       let completion;
       try {
-        console.error("OpenAI request configuration:", {
-          model: "gpt-3.5-turbo",
-          maxTokens: 2000,
-          temperature: 0.7,
-          promptLength: prompt.length,
-          platformsCount: platforms.length,
-          hasContextPrompt: !!contextPrompt
-        });
-
-        completion = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: `You are an expert content creator. Generate content in Portuguese following this format:
+        // Log the exact request we're about to make
+        const messages: ChatCompletionMessageParam[] = [
+          {
+            role: "system",
+            content: `You are an expert content creator. Generate content in Portuguese following this format:
 
 For [Platform Name]:
 
@@ -332,40 +323,96 @@ Pontuação Viral: [0-100]
 ## script results start ##
 [Content following platform structure]
 ## script results ends ##`,
-            },
-            {
-              role: "user",
-              content: `Create content about "${prompt}" for ${platforms.join(", ")}.
+          },
+          {
+            role: "user",
+            content: `Create content about "${prompt}" for ${platforms.join(", ")}.
 Platform format: ${platforms.map((platform) => getPlatformFormat(platform)).join("\n")}
 Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
-            }
-          ],
+          }
+        ];
+
+        console.error("OpenAI request details:", {
+          model: "gpt-3.5-turbo",
+          messageCount: messages.length,
+          systemMessageLength: messages[0]?.content?.length ?? 0,
+          userMessageLength: messages[1]?.content?.length ?? 0,
           temperature: 0.7,
           max_tokens: 2000,
         });
 
-        // Log the token usage immediately
-        console.error("OpenAI API Response Details:", {
-          model: "gpt-3.5-turbo",
-          prompt_tokens: completion.usage?.prompt_tokens,
-          completion_tokens: completion.usage?.completion_tokens,
-          total_tokens: completion.usage?.total_tokens,
-          max_tokens_limit: 2000,
-          has_content: !!completion.choices?.[0]?.message?.content,
-          content_length: completion.choices?.[0]?.message?.content?.length || 0
-        });
+        try {
+          // Verify OpenAI client is initialized
+          if (!openai) {
+            throw new Error("OpenAI client not initialized");
+          }
 
-      } catch (openAiError: any) {
-        console.error("OpenAI API Error:", {
-          error: openAiError.message,
-          type: openAiError.type,
-          code: openAiError.code,
-          param: openAiError.param,
-          stack: openAiError.stack,
-        });
+          // Verify API key is present
+          if (!process.env.OPENAI_API_KEY) {
+            throw new Error("OpenAI API key is missing");
+          }
+
+          // Make the API call with timeout
+          const timeoutMs = 25000; // 25 seconds
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('OpenAI request timed out')), timeoutMs);
+          });
+
+          completion = await Promise.race([
+            openai.chat.completions.create({
+              model: "gpt-3.5-turbo",
+              messages,
+              temperature: 0.7,
+              max_tokens: 2000,
+            }),
+            timeoutPromise
+          ]) as OpenAI.Chat.Completions.ChatCompletion;
+
+          // Log successful response details
+          console.error("OpenAI API Response Details:", {
+            success: true,
+            model: completion.model,
+            prompt_tokens: completion.usage?.prompt_tokens,
+            completion_tokens: completion.usage?.completion_tokens,
+            total_tokens: completion.usage?.total_tokens,
+            max_tokens_limit: 2000,
+            has_content: !!completion.choices?.[0]?.message?.content,
+            content_length: completion.choices?.[0]?.message?.content?.length || 0,
+            finish_reason: completion.choices?.[0]?.finish_reason
+          });
+
+        } catch (openAiError: any) {
+          // Log detailed error information
+          console.error("OpenAI API Error Details:", {
+            error: openAiError.message,
+            type: openAiError.type,
+            code: openAiError.code,
+            param: openAiError.param,
+            stack: openAiError.stack,
+            status: openAiError.status,
+            statusText: openAiError.statusText,
+            headers: openAiError.headers,
+            request: {
+              model: "gpt-3.5-turbo",
+              temperature: 0.7,
+              max_tokens: 2000,
+            }
+          });
+
+          // Return a more specific error message
+          return res.status(500).json({
+            error: "Erro ao gerar conteúdo",
+            details: `OpenAI API Error: ${openAiError.message}`,
+            errorType: openAiError.type || 'unknown',
+            errorCode: openAiError.code || 'unknown'
+          });
+        }
+
+      } catch (error: any) {
+        console.error("Unexpected error during OpenAI request setup:", error);
         return res.status(500).json({
-          error: "Failed to generate content",
-          details: openAiError.message,
+          error: "Erro ao configurar requisição",
+          details: error.message
         });
       }
 
