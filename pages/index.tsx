@@ -130,6 +130,25 @@ export default function Home() {
     return colors[initial.charCodeAt(0) % colors.length];
   };
 
+  // Add modal close handler
+  const closeModal = () => {
+    setSelectedImage(null);
+  };
+
+  // Add ESC key handler for modal
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, []);
+
   if (!showWaitingList) {
     return null;
   }
@@ -140,6 +159,34 @@ export default function Home() {
         <title>YouZit - Seu Assistente de Ecossistema de Conteúdo com IA</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={closeModal}
+        >
+          <div 
+            className="relative max-w-4xl w-full h-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={closeModal}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 text-xl"
+            >
+              ✕
+            </button>
+            <Image
+              src={selectedImage}
+              alt="Full size image"
+              width={1200}
+              height={800}
+              className="rounded-lg"
+              objectFit="contain"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="font-['Inter'] bg-white min-h-screen">
         {/* Navbar */}

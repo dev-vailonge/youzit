@@ -36,7 +36,20 @@ const nextConfig = {
     return config;
   },
   images: {
-    domains: ["upload.wikimedia.org", "static.cdnlogo.com", "www.svgrepo.com"],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'upload.wikimedia.org',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.cdnlogo.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.svgrepo.com',
+      },
+    ],
   },
   async redirects() {
     return [
