@@ -2,15 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination:
-          "https://youzit-dev-vailonges-projects.vercel.app/api/:path*",
-      },
-    ];
-  },
   async headers() {
     return [
       {

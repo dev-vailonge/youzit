@@ -123,6 +123,12 @@ export default function Platforms() {
         return;
       }
 
+      console.log("Generating content with:", {
+        prompt,
+        selectedPlatform,
+        userId: session.user.id,
+      });
+
       setLoading(true);
 
       // Call the generate API with auth token
@@ -141,6 +147,11 @@ export default function Platforms() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("API Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         throw new Error(errorData.message || "Failed to generate content");
       }
 
