@@ -214,12 +214,8 @@ export default function Platforms() {
         hasContext: !!contextPrompt,
       });
 
-      // Get the base URL based on the environment
-      const baseUrl = window.location.origin;
-      console.error("Using base URL:", baseUrl);
-
       // Call the generate API with auth token
-      const response = await fetch(`${baseUrl}/api/generate`, {
+      const response = await fetch('/api/generate', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
