@@ -23,7 +23,7 @@ interface StrictModeDroppableProps {
   children: (
     provided: DroppableProvided,
     snapshot: DroppableStateSnapshot
-  ) => React.ReactNode;
+  ) => React.ReactElement;
 }
 
 const StrictModeDroppable = ({
