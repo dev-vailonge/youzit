@@ -141,7 +141,15 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log("API handler started");
+  console.error("API handler started");
+  
+  // Log environment variables (safely)
+  console.error("Environment check:", {
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  });
+
   // Enable CORS
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -169,10 +177,12 @@ export default async function handler(
     // Get the auth token from the request header
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid authorization header");
       return res.status(401).json({ error: "Missing authorization header" });
     }
 
     const token = authHeader.split(" ")[1];
+    console.error("Token received:", token ? "present" : "missing");
 
     // Create a new Supabase client with the token
     const supabase = createClient(supabaseUrl, supabaseKey, {
@@ -206,18 +216,35 @@ export default async function handler(
       error: authError,
     } = await supabase.auth.getUser(token);
 
-    console.log("Auth check:", { userId: user?.id, error: authError });
+    console.error("Auth check:", { 
+      userId: user?.id, 
+      hasError: !!authError,
+      errorMessage: authError?.message 
+    });
 
     if (authError || !user) {
-      return res.status(401).json({ error: "Invalid authorization token" });
+      return res.status(401).json({ 
+        error: "Invalid authorization token",
+        details: authError?.message 
+      });
     }
 
     // Parse and validate request body
     let body: GenerateRequest;
     try {
       body = JSON.parse(JSON.stringify(req.body));
+      console.error("Request body:", {
+        hasPrompt: !!body.prompt,
+        promptLength: body.prompt?.length,
+        platforms: body.platforms?.length,
+        hasUserId: !!body.userId,
+      });
     } catch (e) {
-      return res.status(400).json({ error: "Invalid request body" });
+      console.error("Failed to parse request body:", e);
+      return res.status(400).json({ 
+        error: "Invalid request body",
+        details: e instanceof Error ? e.message : "Unknown error"
+      });
     }
 
     const { prompt, platforms, userId, contextPrompt } = body;
@@ -239,7 +266,11 @@ export default async function handler(
 
     // Check user authentication
     if (user.id !== userId) {
-      return res.status(403).json({ error: "User ID mismatch" });
+      return res.status(403).json({ 
+        error: "User ID mismatch",
+        expected: user.id,
+        received: userId
+      });
     }
 
     // Normalize the prompt by trimming and converting to lowercase

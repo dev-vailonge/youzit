@@ -157,8 +157,12 @@ export default function Platforms() {
         hasUserId: !!requestBody.userId,
       });
 
+      // Get the base URL based on the environment
+      const baseUrl = window.location.origin;
+      console.error("Using base URL:", baseUrl);
+
       // Call the generate API with auth token
-      const response = await fetch("/api/generate", {
+      const response = await fetch(`${baseUrl}/api/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -188,6 +192,7 @@ export default function Platforms() {
           promptLength: requestBody.prompt.length,
           platform: requestBody.platforms[0],
           hasUserId: !!requestBody.userId,
+          baseUrl,
         });
 
         throw new Error(errorMessage);
