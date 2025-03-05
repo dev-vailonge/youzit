@@ -110,41 +110,29 @@ export default function Platforms() {
 
   const handleGenerate = async () => {
     try {
-      // Check if we have a prompt from the URL
-      if (!router.isReady) {
-        console.error("Router not ready");
-        toast.error("Aguarde o carregamento da página");
-        return;
-      }
-
-      if (!prompt) {
-        console.error("No prompt in URL");
-        toast.error("Por favor, insira um prompt");
-        return;
-      }
-
-      // Check session first
+      // Get current session
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        console.error("Session error:", sessionError);
+        console.error("Session error in handleGenerate:", sessionError);
         toast.error("Por favor, faça login para continuar");
         router.push("/signin");
         return;
       }
 
-      if (!session.user.email) {
-        console.error("User email missing");
-        toast.error("Erro: E-mail do usuário não encontrado");
-        return;
-      }
+      // Log session data (safely)
+      console.error("Session data:", {
+        hasUser: !!session.user,
+        userId: session.user?.id,
+        hasEmail: !!session.user?.email,
+      });
 
-      if (selectedPlatform.length === 0) {
-        console.error("No platform selected");
-        toast.error("Por favor, selecione pelo menos uma plataforma");
+      if (!session.user?.email) {
+        console.error("User email is missing from session");
+        toast.error("Erro: Email do usuário não encontrado");
         return;
       }
 
@@ -160,12 +148,22 @@ export default function Platforms() {
 
       // Prepare the request body
       const requestBody = {
-        prompt: prompt.toString(),
+        prompt: prompt?.toString() || "",
         platforms: [selectedPlatform],
         userId: session.user.id,
         email: session.user.email,
         ...(contextPrompt && { contextPrompt }),
       };
+
+      // Log request body (safely)
+      console.error("Request body:", {
+        hasPrompt: !!requestBody.prompt,
+        promptLength: requestBody.prompt.length,
+        platform: requestBody.platforms[0],
+        hasUserId: !!requestBody.userId,
+        hasEmail: !!requestBody.email,
+        hasContext: !!contextPrompt,
+      });
 
       // Get the base URL based on the environment
       const baseUrl = window.location.origin;
@@ -195,59 +193,26 @@ export default function Platforms() {
             promptLength: requestBody.prompt.length,
             platform: requestBody.platforms[0],
             hasUserId: !!requestBody.userId,
+            hasEmail: !!requestBody.email,
             hasContext: !!contextPrompt,
           }
         };
-
-        // Store error details in sessionStorage for debugging
-        sessionStorage.setItem("lastError", JSON.stringify(errorDetails));
-
-        // Show detailed error message to user
-        const errorMessage = responseData.error || responseData.message || "Falha ao gerar conteúdo";
-        const errorDetailsMessage = responseData.details ? `\nDetalhes: ${responseData.details}` : "";
-        toast.error(`${errorMessage}${errorDetailsMessage}`);
-
-        throw new Error(errorMessage);
+        console.error("API Error:", errorDetails);
+        throw new Error(responseData.error || "Failed to generate content");
       }
 
       // Store the results in session storage
-      sessionStorage.setItem("currentPrompt", prompt.toString());
       sessionStorage.setItem(
         "contentResults",
-        JSON.stringify([
-          {
-            platform: selectedPlatform,
-            content: responseData.script_result || responseData.content,
-            viralScore: responseData.viral_score || responseData.viralScore,
-            contentAnalysis: responseData.content_analysis || responseData.contentAnalysis,
-          },
-        ])
+        JSON.stringify(responseData.content)
       );
+      sessionStorage.setItem("currentPrompt", prompt?.toString() || "");
 
-      // Use consistent id field from response
-      const contentId = responseData.id;
-      if (contentId) {
-        sessionStorage.setItem("contentId", contentId);
-        router.push(`/content?id=${contentId}`);
-      } else {
-        throw new Error("No content ID received in response");
-      }
-    } catch (error) {
-      // Get the last error from sessionStorage if available
-      const lastError = sessionStorage.getItem("lastError");
-      const errorDetails = lastError ? JSON.parse(lastError) : null;
-
-      // Show detailed error message
-      const errorMessage = error instanceof Error ? error.message : "Falha ao gerar conteúdo";
-      const detailsMessage = errorDetails ? `\nStatus: ${errorDetails.status}\nDetalhes: ${errorDetails.details}` : "";
-      toast.error(`${errorMessage}${detailsMessage}`);
-
-      // Store error for debugging
-      sessionStorage.setItem("lastError", JSON.stringify({
-        message: errorMessage,
-        details: errorDetails,
-        timestamp: new Date().toISOString(),
-      }));
+      // Navigate to the content page
+      router.push(`/content/${selectedPlatform}`);
+    } catch (error: any) {
+      console.error("Error in handleGenerate:", error);
+      toast.error(error.message || "Failed to generate content");
     } finally {
       setLoading(false);
     }
