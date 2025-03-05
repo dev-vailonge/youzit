@@ -30,8 +30,14 @@ export default function Home() {
 
       if (error) throw error;
       
-      console.log('Fetched data:', { data, count });
-      setWaitingListUsers(data || []);
+      // Mask emails before setting state
+      const maskedData = data?.map(user => ({
+        ...user,
+        email: user.email.charAt(0) + '*'.repeat(user.email.length - 1)
+      })) || [];
+      
+      console.log('Fetched data:', { maskedData, count });
+      setWaitingListUsers(maskedData);
       setUserCount(count || 0);
     } catch (error) {
       console.error('Error fetching waiting list:', error);
