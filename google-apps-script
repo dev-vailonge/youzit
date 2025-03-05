@@ -1,0 +1,33 @@
+function doGet(e) {
+  return ContentService.createTextOutput("API is working");
+}
+
+function doPost(e) {
+  try {
+    // Log the incoming request for debugging
+    Logger.log("Received POST request");
+    Logger.log(e.parameter);
+
+    // Get email from form data
+    const email = e.parameter.email;
+
+    if (!email) {
+      throw new Error("Email is required");
+    }
+
+    // Get the active sheet
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+    // Add the email and timestamp
+    sheet.appendRow([email, new Date()]);
+
+    // Return success response
+    return HtmlService.createHtmlOutput("Success!");
+  } catch (error) {
+    // Log the error for debugging
+    Logger.log("Error: " + error.toString());
+
+    // Return error response
+    return HtmlService.createHtmlOutput("Error: " + error.toString());
+  }
+}
