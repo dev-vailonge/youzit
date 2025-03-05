@@ -57,34 +57,55 @@ export default function Platforms() {
 
   useEffect(() => {
     const checkUser = async () => {
-      // First check session
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      try {
+        console.error("Starting user check...");
+        
+        // First check session
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-      if (sessionError || !session) {
-        console.error("Session error:", sessionError);
-        toast.error("Por favor, faça login para continuar");
+        console.error("Session check result:", {
+          hasSession: !!session,
+          hasError: !!sessionError,
+          errorMessage: sessionError?.message,
+        });
+
+        if (sessionError || !session) {
+          console.error("Session error:", sessionError);
+          toast.error("Por favor, faça login para continuar");
+          router.push("/signin");
+          return;
+        }
+
+        // Then get user details
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        console.error("User check result:", {
+          hasUser: !!user,
+          hasError: !!userError,
+          errorMessage: userError?.message,
+          userId: user?.id,
+          userEmail: user?.email,
+        });
+
+        if (userError || !user) {
+          console.error("User error:", userError);
+          toast.error("Erro ao carregar dados do usuário");
+          router.push("/signin");
+          return;
+        }
+
+        setUser(user);
+      } catch (error) {
+        console.error("Error in checkUser:", error);
+        toast.error("Erro ao verificar usuário");
         router.push("/signin");
-        return;
       }
-
-      // Then get user details
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error("User error:", userError);
-        toast.error("Erro ao carregar dados do usuário");
-        router.push("/signin");
-        return;
-      }
-
-      console.log("User data:", { id: user.id, email: user.email });
-      setUser(user);
     };
 
     checkUser();
@@ -110,11 +131,38 @@ export default function Platforms() {
 
   const handleGenerate = async () => {
     try {
+      console.error("Starting content generation...");
+      
+      // Check if we have a prompt from the URL
+      if (!router.isReady) {
+        console.error("Router not ready");
+        toast.error("Aguarde o carregamento da página");
+        return;
+      }
+
+      if (!prompt) {
+        console.error("No prompt in URL");
+        toast.error("Por favor, insira um prompt");
+        return;
+      }
+
+      if (!selectedPlatform) {
+        console.error("No platform selected");
+        toast.error("Por favor, selecione uma plataforma");
+        return;
+      }
+
       // Get current session
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
+
+      console.error("Session check in handleGenerate:", {
+        hasSession: !!session,
+        hasError: !!sessionError,
+        errorMessage: sessionError?.message,
+      });
 
       if (sessionError || !session) {
         console.error("Session error in handleGenerate:", sessionError);
@@ -128,6 +176,7 @@ export default function Platforms() {
         hasUser: !!session.user,
         userId: session.user?.id,
         hasEmail: !!session.user?.email,
+        accessToken: !!session.access_token,
       });
 
       if (!session.user?.email) {
@@ -148,7 +197,7 @@ export default function Platforms() {
 
       // Prepare the request body
       const requestBody = {
-        prompt: prompt?.toString() || "",
+        prompt: prompt.toString(),
         platforms: [selectedPlatform],
         userId: session.user.id,
         email: session.user.email,
@@ -167,6 +216,7 @@ export default function Platforms() {
 
       // Get the base URL based on the environment
       const baseUrl = window.location.origin;
+      console.error("Using base URL:", baseUrl);
 
       // Call the generate API with auth token
       const response = await fetch(`${baseUrl}/api/generate`, {
@@ -206,7 +256,7 @@ export default function Platforms() {
         "contentResults",
         JSON.stringify(responseData.content)
       );
-      sessionStorage.setItem("currentPrompt", prompt?.toString() || "");
+      sessionStorage.setItem("currentPrompt", prompt.toString());
 
       // Navigate to the content page
       router.push(`/content/${selectedPlatform}`);
