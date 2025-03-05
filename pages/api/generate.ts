@@ -49,17 +49,17 @@ Start with a bold statement, intriguing question, or surprising fact directly re
 The goal is to grab attention immediately and create curiosity.
 End with a transition to encourage viewers to keep watching.
 🎤 Example Hook:
-"Want to learn to code but don’t know where to start? What if I told you that 90% of beginners quit in the first few months because they follow the wrong path?"
-⏳ "But don’ t worry! Today, I’m going to show you a simple, step-by-step guide to learning programming the right way and speeding up your progress!"
+"Want to learn to code but don't know where to start? What if I told you that 90% of beginners quit in the first few months because they follow the wrong path?"
+⏳ "But don' t worry! Today, I'm going to show you a simple, step-by-step guide to learning programming the right way and speeding up your progress!"
 
 [Introduction - 30-60 seconds]
 Give context about the topic and why it matters to the audience.
 Use a relatable experience, personal story, or common struggle to connect with the audience.
 Provide a quick preview of what the video will cover.
 🎤 Example Introduction:
-"If you’ve ever tried learning to code and felt lost between languages, tutorials, and courses, youre not alone. I went through the same struggle when I started. But after years in the industry, I realized there’s a much smarter way to learn programming from scratch."
+"If you've ever tried learning to code and felt lost between languages, tutorials, and courses, youre not alone. I went through the same struggle when I started. But after years in the industry, I realized there's a much smarter way to learn programming from scratch."
 
-🚀 "In this video, I’ll show you:
+🚀 "In this video, I'll show you:
 • What you actually need to learn first
 • Which programming language to start with
 • How to avoid the common mistakes that make people quit
@@ -70,7 +70,7 @@ Provide a quick preview of what the video will cover.
    - Explain the **main idea behind the topic** in simple terms.  
    - Provide an example **directly related to the given input**.  
    - Example:  
-      - **For "How to learn programming" →** 🖥️ “Programming is like learning a new language. The secret is immersion.”  
+      - **For "How to learn programming" →** 🖥️ "Programming is like learning a new language. The secret is immersion."  
 
 💡 **Section 2: Step-by-Step Breakdown**  
    - Provide **a structured guide** (Step 1, Step 2, Step 3…).  
@@ -85,7 +85,7 @@ Provide a quick preview of what the video will cover.
    - Show how **this knowledge applies in real life**.  
    - Provide a **story, testimonial, or example** to engage the audience.  
    - Example:  
-      - **For "Brazilians in Portugal" →** 🇵🇹 “João moved to Lisbon expecting a cheap lifestyle, but he was shocked by the high rent. Heres how he solved it…”  
+      - **For "Brazilians in Portugal" →** 🇵🇹 "João moved to Lisbon expecting a cheap lifestyle, but he was shocked by the high rent. Heres how he solved it…"  
 
 💡 **Section 4: Common Mistakes & How to Avoid Them**  
    - Highlight **the most frequent errors related to the topic**.  
@@ -99,11 +99,11 @@ Provide a quick preview of what the video will cover.
    - Share **expert advice, little-known tricks, or strategies**.  
    - Position it as **exclusive knowledge** for those who stayed until the end.  
    - Example:  
-      - **For "Investing for beginners" →** 📈 “Most beginners only look at stock price, but real investors analyze company fundamentals.”  
+      - **For "Investing for beginners" →** 📈 "Most beginners only look at stock price, but real investors analyze company fundamentals."  
 
 🔄 **Smooth Transitions Between Sections**  
    - Always ensure a natural flow.  
-   - Example: “Now that you know the steps, lets talk about the biggest mistakes to avoid.”  
+   - Example: "Now that you know the steps, lets talk about the biggest mistakes to avoid."  
 
 [Engagement Prompts]  
 • Include **at least two audience interaction questions** within the video.  
@@ -116,11 +116,11 @@ Provide a quick preview of what the video will cover.
 • Add a **bonus tip or insight** as a reward for those who watched until the end.  
 
 [Call to Action - 10-15 seconds]  
-• Encourage a **specific next step**, rather than just saying “Like & Subscribe.”  
+• Encourage a **specific next step**, rather than just saying "Like & Subscribe."  
 • Examples:  
-   - “I have a full guide on this—check the link in the description!”  
-   - “Follow me for weekly content on [topic]!”  
-   - “Comment below if you want me to cover another part of this topic!”  
+   - "I have a full guide on this—check the link in the description!"  
+   - "Follow me for weekly content on [topic]!"  
+   - "Comment below if you want me to cover another part of this topic!"  
 
 `,
 
@@ -138,7 +138,7 @@ REELS (15-60 seconds):
 - Start with **a bold statement, intriguing question, or surprising fact** directly related to the topic.  
 - Example Hooks:  
   - 🚀 *"Most people do THIS wrong in coding… Are you one of them?"*  
-  - 🤯 *"You won’t believe how simple this trick is!"*  
+  - 🤯 *"You won't believe how simple this trick is!"*  
   - 🔥 *"Want to improve at [topic] in just 30 seconds? Watch this!"*  
 - End with a **tease to keep viewers engaged:**  
   - *"Stay until the end for the best tip!"*
@@ -148,7 +148,7 @@ REELS (15-60 seconds):
 - Use an engaging structure like:  
   - **Problem → Solution → Benefit  
   - **Step-by-Step Quick Tips (1-2-3 Format)  
-  - **“Most people fail at X because… but heres the fix!”
+  - **"Most people fail at X because… but heres the fix!"
 - Use **captions, visual aids (text overlays, images), and engaging edits.
 
 [Call to Action - 5-10 seconds]  
@@ -166,7 +166,7 @@ REELS (15-60 seconds):
   - Example Hooks:  
     - Avoid these 3 common mistakes!
     - How to master [topic] in just 5 steps!
-    - People think this doesn’t work, but here’s proof!
+    - People think this doesn't work, but here's proof!
   
 [Slides 2-6: Step-by-Step Content]
 - Each slide should focus on ONE key point for clarity.  
@@ -202,24 +202,24 @@ IMPORTANTE:
 [Subject Line]: {Compelling Headline}  
 • Make it **intriguing, benefit-driven, or curiosity-inducing** to boost open rates.  
 • Examples (adapt as needed):  
-   - “The #1 Mistake That’s Killing Your Productivity”  
-   - “How I Fixed My Code in 5 Minutes (After Struggling for 5 Hours)”  
-   - “The Secret to Growing as a Developer (That No One Talks About)”  
+   - "The #1 Mistake That's Killing Your Productivity"  
+   - "How I Fixed My Code in 5 Minutes (After Struggling for 5 Hours)"  
+   - "The Secret to Growing as a Developer (That No One Talks About)"  
 • Keep it short (under **50 characters**) and **avoid spammy words** like "free" or "urgent."
 
 [Preview Text]: {1-2 Sentence Teaser}  
 • This appears in the inbox **right after the subject line** – make it a strong hook!  
 • Examples:  
-   - “Most developers don’t realize how much time they waste on this…”  
-   - “I wish someone had told me this earlier in my career.”  
+   - "Most developers don't realize how much time they waste on this…"  
+   - "I wish someone had told me this earlier in my career."  
 
 [Introduction]: {Story/Hook}  
 • Start with a **relatable story, thought-provoking statement, or bold question**.  
 • The goal is to **hook the reader** and create an emotional or intellectual connection.  
 • Example structures:  
    - **"Let me tell you a quick story… (personal experience)"**  
-   - **"Ever felt stuck trying to [solve problem]? You’re not alone."**  
-   - **"Here’s something I wish I knew when I started…"**  
+   - **"Ever felt stuck trying to [solve problem]? You're not alone."**  
+   - **"Here's something I wish I knew when I started…"**  
 
 [Main Body]  
 • **Section 1: Define the Problem**  
@@ -234,7 +234,7 @@ IMPORTANTE:
    - Give the reader **a clear next step** to apply what they learned.  
    - Example:  
      - ✅ "Try this technique today and see the difference."  
-     - 🚀 "Here’s a simple way to fix this starting now…"  
+     - 🚀 "Here's a simple way to fix this starting now…"  
 
 [CTA]: {Clear Next Step}  
 • Encourage the reader to **take action** – make it **specific and benefit-driven**.  
@@ -283,7 +283,7 @@ IMPORTANTE:
 • Example prompts:  
    - "Whats your biggest lesson in [topic]?"  
    - "Have you ever struggled with this? How did you handle it?"  
-   - "Whats one thing you wish you knew earlier?
+   - "Whats one thing you wish you knew earlier?"
 `,
 
     twitter: `
@@ -300,8 +300,8 @@ IMPORTANTE:
 This [Tweet 1]: {Hook + Thread Preview}  
 • Your first tweet should **stop the scroll** and make people want to read the thread.  
 • Suggested formats (adapt as needed):  
-   - **A bold statement:** "Most people fail at [X] because they don’t know this…"  
-   - **A surprising fact:** "You’re using [popular tool] wrong. Here’s why."  
+   - **A bold statement:** "Most people fail at [X] because they don't know this…"  
+   - **A surprising fact:** "You're using [popular tool] wrong. Here's why."  
    - **A curiosity-driven opener:** "I spent 10 years learning [X]. Here are the 5 biggest lessons (that no one tells you)."  
    - **A problem-solution hook:** "Struggling with [X]? This thread will fix that."  
 • End with **a cliffhanger**:  
@@ -310,10 +310,10 @@ This [Tweet 1]: {Hook + Thread Preview}
 [Tweets 2-8]: {Main Content Points}  
 • Each tweet should **deliver one key insight**, keeping it **short and engaging**.  
 • Suggested structures (adjust as needed):  
-   - **Step-by-step breakdown:** "Here’s exactly how to do X in 5 simple steps…"  
-   - **Lessons from experience:** "After failing at X multiple times, here’s what finally worked…"  
+   - **Step-by-step breakdown:** "Here's exactly how to do X in 5 simple steps…"  
+   - **Lessons from experience:** "After failing at X multiple times, here's what finally worked…"  
    - **Common mistakes & fixes:** "Most people do this wrong. Instead, try this…"  
-   - **Data-driven insights:** "Studies show that X improves Y by Z%. Here’s why it matters…"  
+   - **Data-driven insights:** "Studies show that X improves Y by Z%. Here's why it matters…"  
 • Use **formatting tricks** for better readability:  
    - ✅ Use bullet points  
    - 🔥 Add emojis (sparingly)  
@@ -325,7 +325,7 @@ This [Tweet 1]: {Hook + Thread Preview}
    - "Which of these was the most useful? Reply and let me know!"  
    - "Follow me for more threads like this on [topic]!"  
    - "If you found this helpful, like & retweet to share with others!"  
-   - "Save this thread so you don’t forget it!"  
+   - "Save this thread so you don't forget it!"  
 
     `,
 
@@ -685,13 +685,14 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
             } : null
           });
 
-          // Return a detailed error response
+          // Return a properly formatted error response
           return sendResponse(500, {
-            error: "Erro ao gerar conteúdo",
-            details: error.message,
+            error: "OPENAI_ERROR",
+            message: "Erro ao gerar conteúdo",
+            details: error.message || "Unknown error",
             type: error.type || 'unknown',
             isTimeout: error.message === 'OpenAI request timed out',
-            status: error.status
+            status: error.status || 500
           });
         }
 
@@ -711,8 +712,9 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
       } catch (error: any) {
         console.error("Unexpected error during OpenAI request setup:", error);
         return sendResponse(500, {
-          error: "Erro ao configurar requisição",
-          details: error.message
+          error: "REQUEST_SETUP_ERROR",
+          message: "Erro ao configurar requisição",
+          details: error.message || "Unknown error"
         });
       }
 
@@ -925,8 +927,9 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
     } catch (error: any) {
       console.error("Unexpected error:", error);
       return sendResponse(500, {
-        error: "An unexpected error occurred",
-        details: error.message,
+        error: "UNEXPECTED_ERROR",
+        message: "An unexpected error occurred",
+        details: error.message || "Unknown error",
       });
     }
   } catch (error: any) {
@@ -937,8 +940,9 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
     });
     
     return sendResponse(500, {
-      error: "Erro interno no servidor",
-      details: error.message,
+      error: "SERVER_ERROR",
+      message: "Erro interno no servidor",
+      details: error.message || "Unknown error",
       type: error.name || 'unknown'
     });
   }
