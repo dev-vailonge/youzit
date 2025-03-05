@@ -123,13 +123,33 @@ export default function Platforms() {
         return;
       }
 
+      if (!prompt) {
+        toast.error("Por favor, insira um prompt");
+        return;
+      }
+
       console.log("Generating content with:", {
         prompt,
         selectedPlatform,
         userId: session.user.id,
+        session: {
+          access_token: session.access_token ? "present" : "missing",
+          user: {
+            id: session.user.id,
+            email: session.user.email,
+          },
+        },
       });
 
       setLoading(true);
+
+      const requestBody = {
+        prompt: prompt,
+        platforms: [selectedPlatform],
+        userId: session.user.id,
+      };
+
+      console.log("Request body:", requestBody);
 
       // Call the generate API with auth token
       const response = await fetch("/api/generate", {
@@ -138,11 +158,7 @@ export default function Platforms() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          prompt: prompt,
-          platforms: [selectedPlatform],
-          userId: session.user.id,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -151,6 +167,11 @@ export default function Platforms() {
           status: response.status,
           statusText: response.statusText,
           errorData,
+          requestBody,
+          headers: {
+            authorization: response.headers.get("authorization") ? "present" : "missing",
+            contentType: response.headers.get("content-type"),
+          },
         });
         throw new Error(errorData.message || "Failed to generate content");
       }
