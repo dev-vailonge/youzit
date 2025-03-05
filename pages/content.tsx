@@ -119,28 +119,73 @@ export default function Content() {
       try {
         // Check user authentication
         const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError || !session) {
+          console.error("Session error:", sessionError);
+          toast.error("Por favor, faça login para continuar");
+          router.push("/signin");
+          return;
+        }
+
+        const {
           data: { user },
-          error,
+          error: userError,
         } = await supabase.auth.getUser();
 
-        if (error || !user) {
+        if (userError || !user) {
+          console.error("User error:", userError);
+          toast.error("Por favor, faça login para continuar");
           router.push("/signin");
           return;
         }
 
         setUser(user);
 
-        // Get stored results from sessionStorage
-        const storedResults = sessionStorage.getItem("contentResults");
+        // Get the content ID from the URL
+        const contentId = router.query.id as string;
+        if (!contentId) {
+          console.error("No content ID in URL");
+          toast.error("ID do conteúdo não fornecido");
+          router.push("/prompt");
+          return;
+        }
 
+        // Fetch the content from Supabase
+        const { data: contentData, error: contentError } = await supabase
+          .from("prompts")
+          .select("*")
+          .eq("id", contentId)
+          .single();
+
+        if (contentError) {
+          console.error("Error fetching content:", contentError);
+          toast.error("Erro ao carregar conteúdo");
+          return;
+        }
+
+        if (!contentData) {
+          console.error("No content found for ID:", contentId);
+          toast.error("Conteúdo não encontrado");
+          return;
+        }
+
+        // Set the content data
+        setContent(contentData);
+
+        // Get stored results from sessionStorage if they exist
+        const storedResults = sessionStorage.getItem("contentResults");
         if (storedResults) {
           const parsedResults = JSON.parse(storedResults);
           setContentResults(parsedResults);
-        } else {
-          router.push("/prompt");
         }
+
+        setLoading(false);
       } catch (error) {
         console.error("Error in init:", error);
+        toast.error("Erro ao carregar dados");
         router.push("/signin");
       } finally {
         setInitializing(false);
@@ -148,44 +193,73 @@ export default function Content() {
     };
 
     init();
-  }, [router.isReady]);
+  }, [router.isReady, router.query.id]);
+
+  const fetchContent = async () => {
+    try {
+      const id = router.query.id as string;
+      const source = router.query.source;
+
+      if (!id) {
+        console.error("No content ID provided");
+        toast.error("ID do conteúdo não fornecido");
+        setLoading(false);
+        return;
+      }
+
+      // First check session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        toast.error("Por favor, faça login para continuar");
+        router.push("/signin");
+        return;
+      }
+
+      // Fetch from prompts
+      const { data, error } = await supabase
+        .from("prompts")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching prompt:", error);
+        if (error.code === "PGRST116") {
+          toast.error("Conteúdo não encontrado");
+        } else {
+          toast.error("Erro ao carregar conteúdo");
+        }
+        throw error;
+      }
+
+      if (!data) {
+        console.error("No content found for ID:", id);
+        toast.error("Conteúdo não encontrado");
+        setLoading(false);
+        return;
+      }
+
+      setContent(data);
+      
+      // Get stored results
+      const storedResults = sessionStorage.getItem("contentResults");
+      if (storedResults) {
+        const parsedResults = JSON.parse(storedResults);
+        setContentResults(parsedResults);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error in fetchContent:", error);
+      toast.error("Erro ao carregar conteúdo");
+      setLoading(false);
+      router.push("/prompt");
+    }
+  };
 
   useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const id = router.query.id as string;
-        const source = router.query.source;
-
-        if (!id) return;
-
-        let contentData;
-
-        // Fetch from prompts
-        const { data, error } = await supabase
-          .from("prompts")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (error) throw error;
-        contentData = data;
-
-        setContent(contentData);
-        setLoading(false);
-
-        // Get stored results
-        const storedResults = sessionStorage.getItem("contentResults");
-        if (storedResults) {
-          const parsedResults = JSON.parse(storedResults);
-          setContentResults(parsedResults);
-        }
-      } catch (error) {
-        console.error("Error fetching content:", error);
-        toast.error("Failed to load content");
-        setLoading(false);
-      }
-    };
-
     if (router.isReady) {
       fetchContent();
     }

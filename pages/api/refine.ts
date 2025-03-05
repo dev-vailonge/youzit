@@ -54,43 +54,51 @@ CRITICAL INSTRUCTIONS:
 4. Copy-paste all other sections EXACTLY as they are
 5. Maintain ALL formatting, section markers, and structure
 6. ALL content MUST be in Portuguese, including section titles, analysis, and scores
+7. ALWAYS translate any English content to Portuguese
 
 Your task is surgical: make precise changes only where requested while preserving everything else exactly as is.
 
-Your response must follow this format:
+Your response must follow this format EXACTLY:
 
-Content:
-[COMPLETE content with only the specified section modified]
+## script results start ##
+[COMPLETE content with only the specified section modified, in Portuguese]
+## script results ends ##
 
-Análise de Conteúdo:
-- Potencial de Engajamento (Pontuação: X/10): [Explicação em português]
-- Apelo ao Público-Alvo (Pontuação: X/10): [Explicação em português]
-- Eficácia do Gancho (Pontuação: X/10): [Explicação em português]
-- Força da Chamada para Ação (Pontuação: X/10): [Explicação em português]
-- SEO/Descoberta (Pontuação: X/10): [Explicação em português]
-- Impacto Emocional (Pontuação: X/10): [Explicação em português]
-- Fatores de Compartilhamento (Pontuação: X/10): [Explicação em português]
+## content analyses start ##
+- Potencial de Engajamento (Pontuação: 8/10): Uma explicação detalhada do por que esse conteúdo tem alto potencial de engajamento
+- Apelo ao Público-Alvo (Pontuação: 7/10): Uma análise do quanto o conteúdo ressoa com o público pretendido
+- Eficácia do Gancho (Pontuação: 9/10): Avaliação da força do gancho inicial e sua capacidade de capturar atenção
+- Força da Chamada para Ação (Pontuação: 8/10): Análise da eficácia da CTA em motivar a ação do usuário
+- SEO/Descoberta (Pontuação: 7/10): Avaliação da otimização para descoberta e alcance orgânico
+- Impacto Emocional (Pontuação: 8/10): Análise da capacidade do conteúdo de gerar conexão emocional
+- Fatores de Compartilhamento (Pontuação: 9/10): Avaliação do potencial viral e compartilhável do conteúdo
+## content analyses ends ##
 
-Pontuação Viral: [número entre 1-100]
+## viral score start ##
+Pontuação Viral: 85
+## viral score ends ##
 
 IMPORTANT: 
-- Each analysis item MUST follow the exact format above with (Pontuação: X/10) included
+- Replace all example scores above with YOUR actual analysis scores (1-10)
+- Replace all example descriptions with YOUR actual analysis in Portuguese
+- The viral score must be a number between 1 and 100
+- DO NOT use placeholders like 'X/10' or '[Explicação]'
+- Each analysis item MUST follow the exact format: "- Title (Pontuação: N/10): Detailed description"
 - ALL text MUST be in Portuguese
 - Do not use any English terms`;
 
     const userPrompt = `Original prompt: ${originalPrompt}
-    Platform: ${platform}
-    Current content: ${currentContent}
-    Refinement request: ${refinementPrompt}
-    
-    IMPORTANT: You must preserve the exact structure and content of the script. Only modify the specific section mentioned in the refinement request.
+Platform: ${platform}
+Current content: ${currentContent}
+Refinement request: ${refinementPrompt}
 
-    For example, if the refinement request is about the hook:
-    1. Keep the [Hook] marker
-    2. Only change the content within that section
-    3. Leave ALL other sections ([Introduction], [Main Content], etc.) exactly as they are
-
-    Return the COMPLETE content with ONLY the requested changes. Do not summarize or remove any sections.`;
+IMPORTANT: 
+1. You must preserve the exact structure and content of the script
+2. Only modify the specific section mentioned in the refinement request
+3. Translate ALL content to Portuguese, including section titles
+4. Keep the section markers but translate their content
+5. Return the COMPLETE content with ONLY the requested changes
+6. Do not summarize or remove any sections`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -107,14 +115,24 @@ IMPORTANT:
       throw new Error("No response from OpenAI");
     }
 
-    // Parse the result
+    // Log the raw response for debugging
+    console.log("Raw OpenAI response:", result);
+
+    // Parse the result using the updated markers
     const contentMatch = result.match(
-      /Content:?\s*\n([\s\S]*?)(?:\n\s*Análise de Conteúdo:|\n\s*$)/i
+      /## script results start ##\s*([\s\S]*?)\s*## script results ends ##/i
     );
     const analysisMatch = result.match(
-      /Análise de Conteúdo:?\s*\n([\s\S]*?)(?:\n\s*Pontuação Viral:|\n\s*$)/i
+      /## content analyses start ##\s*([\s\S]*?)\s*## content analyses ends ##/i
     );
-    const scoreMatch = result.match(/Pontuação Viral:?\s*(\d+)/i);
+    const scoreMatch = result.match(
+      /## viral score start ##\s*Pontuação Viral:\s*(\d+)\s*## viral score ends ##/i
+    );
+
+    // Log parsing results
+    console.log("Content match found:", !!contentMatch);
+    console.log("Analysis match found:", !!analysisMatch);
+    console.log("Score match found:", !!scoreMatch);
 
     if (!contentMatch) {
       throw new Error("Could not parse content from OpenAI response");
@@ -122,44 +140,44 @@ IMPORTANT:
 
     const refinedContent = contentMatch[1].trim();
     let contentAnalysis: ContentAnalysisItem[] = [];
+    const itemRegex = /-\s*([\wÀ-ÿ\s/-]+)\s*\((?:Score|Pontuação):\s*(\d+)\/10\):\s*([^\n]+)/g;
 
     if (analysisMatch) {
-      contentAnalysis = analysisMatch[1]
-        .split(/\n\s*-\s*/)
-        .filter(Boolean)
-        .map((line) => {
-          // Extract title, score, and description using the exact format from the prompt
-          const match = line.match(/(.*?)\s*\(Pontuação:\s*(\d+)\/10\):\s*(.*)/i);
-          
-          if (match) {
-            const [_, title, score, description] = match;
-            return {
-              title: title.trim(),
-              description: description.trim(),
-              score: parseInt(score, 10)
-            };
-          }
-          
-          // Fallback parsing if format doesn't match exactly
-          const parts = line.split(/:\s*/);
-          const title = parts[0].trim();
-          const description = parts.slice(1).join(":").trim();
-          
-          // Extract score from description if present
-          const scoreMatch = description.match(/\(Pontuação:\s*(\d+)\/10\)/i);
-          const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 8;
-          const cleanDescription = description.replace(/\(Pontuação:\s*\d+\/10\)/i, "").trim();
-          
-          return {
-            title,
-            description: cleanDescription,
-            score
-          };
-        })
-        .filter(item => item.title && item.description);
+      const analysisContent = analysisMatch[1].trim();
+      console.log("Analysis content to parse:", analysisContent);
+      
+      let match;
+
+      while ((match = itemRegex.exec(analysisContent))) {
+        const [fullMatch, title, score, description] = match;
+        console.log("Matched analysis item:", { fullMatch, title, score, description });
+        contentAnalysis.push({
+          title: title.trim(),
+          description: description.trim(),
+          score: parseInt(score, 10)
+        });
+      }
+
+      // Log parsed content analysis
+      console.log("Parsed content analysis items:", contentAnalysis.length);
+      console.log("Content analysis:", contentAnalysis);
+    } else {
+      console.log("No analysis content found in the response");
     }
 
     const viralScore = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+
+    // Validate the response with more detailed errors
+    if (contentAnalysis.length === 0) {
+      console.error("Content analysis parsing failed:");
+      console.error("- Analysis match exists:", !!analysisMatch);
+      console.error("- Analysis regex pattern:", itemRegex);
+      throw new Error("Failed to parse content analysis - no valid items found");
+    }
+
+    if (viralScore === 0) {
+      throw new Error("Failed to parse viral score");
+    }
 
     // Return the refined content with properly structured content analysis
     res.status(200).json({

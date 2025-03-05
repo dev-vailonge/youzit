@@ -228,38 +228,38 @@ export default function Platforms() {
         body: JSON.stringify(requestBody),
       });
 
-      // Get the response data first
-      const responseData = await response.json();
-
       if (!response.ok) {
-        // Log detailed error information
-        const errorDetails = {
-          status: response.status,
-          statusText: response.statusText,
-          error: responseData.error || "Unknown error",
-          details: responseData.details || "No additional details",
-          request: {
-            hasPrompt: !!requestBody.prompt,
-            promptLength: requestBody.prompt.length,
-            platform: requestBody.platforms[0],
-            hasUserId: !!requestBody.userId,
-            hasEmail: !!requestBody.email,
-            hasContext: !!contextPrompt,
-          }
-        };
-        console.error("API Error:", errorDetails);
-        throw new Error(responseData.error || "Failed to generate content");
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(errorData.message || "Failed to generate content");
       }
 
-      // Store the results in session storage
+      const responseData = await response.json();
+      console.log("API Response:", responseData);
+
+      // Store the results in session storage with the correct structure
+      const contentResult = {
+        platform: selectedPlatform,
+        content: responseData.script_result,
+        viral_score: responseData.viral_score,
+        content_analysis: responseData.content_analysis?.[selectedPlatform.toLowerCase()] || []
+      };
+
+      // Store in session storage
       sessionStorage.setItem(
         "contentResults",
-        JSON.stringify(responseData.content)
+        JSON.stringify([contentResult])
       );
       sessionStorage.setItem("currentPrompt", prompt.toString());
 
-      // Navigate to the content page
-      router.push(`/content/${selectedPlatform}`);
+      // Navigate to the content page with the correct URL structure
+      router.push({
+        pathname: '/content',
+        query: {
+          id: responseData.id,
+          source: 'platform'
+        }
+      });
     } catch (error: any) {
       console.error("Error in handleGenerate:", error);
       toast.error(error.message || "Failed to generate content");
