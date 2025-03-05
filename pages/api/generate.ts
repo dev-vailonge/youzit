@@ -21,6 +21,7 @@ interface GenerateRequest {
   prompt: string;
   platforms: string[];
   userId: string;
+  email: string;
   contextPrompt?: {
     title: string;
     content: string;
@@ -238,6 +239,7 @@ export default async function handler(
         promptLength: body.prompt?.length,
         platforms: body.platforms?.length,
         hasUserId: !!body.userId,
+        hasEmail: !!body.email,
       });
     } catch (e) {
       console.error("Failed to parse request body:", e);
@@ -247,7 +249,7 @@ export default async function handler(
       });
     }
 
-    const { prompt, platforms, userId, contextPrompt } = body;
+    const { prompt, platforms, userId, contextPrompt, email } = body;
 
     // Validate required fields
     if (!prompt) {
@@ -262,6 +264,10 @@ export default async function handler(
 
     if (!userId) {
       return res.status(400).json({ error: "User ID is required" });
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: "E-mail é obrigatório" });
     }
 
     // Check user authentication
