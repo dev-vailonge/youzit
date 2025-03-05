@@ -52,6 +52,10 @@ export default function Platforms() {
   const { prompt } = router.query;
 
   useEffect(() => {
+    console.log("Prompt from URL:", prompt);
+  }, [prompt]);
+
+  useEffect(() => {
     const checkUser = async () => {
       const {
         data: { user },
@@ -105,25 +109,47 @@ export default function Platforms() {
 
   const handleGenerate = async () => {
     try {
+      console.log("Starting generate process...");
+      console.log("Current state:", {
+        prompt,
+        selectedPlatform,
+        loading,
+        user: user ? "present" : "missing",
+      });
+
       // Check session first
+      console.log("Checking session...");
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (sessionError || !session) {
+      if (sessionError) {
         console.error("Session error:", sessionError);
+        toast.error("Erro ao verificar sessão");
+        return;
+      }
+
+      if (!session) {
+        console.error("No session found");
         toast.error("Por favor, faça login para continuar");
         router.push("/signin");
         return;
       }
 
+      console.log("Session found:", {
+        userId: session.user.id,
+        hasAccessToken: !!session.access_token,
+      });
+
       if (selectedPlatform.length === 0) {
+        console.error("No platform selected");
         toast.error("Por favor, selecione pelo menos uma plataforma");
         return;
       }
 
       if (!prompt) {
+        console.error("No prompt provided");
         toast.error("Por favor, insira um prompt");
         return;
       }
@@ -152,6 +178,7 @@ export default function Platforms() {
       console.log("Request body:", requestBody);
 
       // Call the generate API with auth token
+      console.log("Making API request...");
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -161,8 +188,17 @@ export default function Platforms() {
         body: JSON.stringify(requestBody),
       });
 
+      console.log("API Response status:", response.status);
+
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          console.error("Failed to parse error response:", e);
+          errorData = { message: "Failed to parse error response" };
+        }
+
         console.error("API Error Response:", {
           status: response.status,
           statusText: response.statusText,
@@ -173,6 +209,7 @@ export default function Platforms() {
             contentType: response.headers.get("content-type"),
           },
         });
+
         throw new Error(errorData.message || "Failed to generate content");
       }
 
@@ -198,7 +235,7 @@ export default function Platforms() {
       );
 
       // Use consistent id field from response
-      const contentId = data.id; // Only use data.id since that's what we return
+      const contentId = data.id;
       if (contentId) {
         console.log("Setting content ID:", contentId);
         sessionStorage.setItem("contentId", contentId);
@@ -209,6 +246,7 @@ export default function Platforms() {
       }
     } catch (error) {
       console.error("Error in handleGenerate:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
       toast.error(
         error instanceof Error ? error.message : "Falha ao gerar conteúdo"
       );
