@@ -112,6 +112,7 @@ export default function Platforms() {
       // Check if we have a prompt from the URL
       if (!router.isReady) {
         console.error("Router not ready");
+        toast.error("Aguarde o carregamento da página");
         return;
       }
 
@@ -152,24 +153,14 @@ export default function Platforms() {
 
       // Prepare the request body
       const requestBody = {
-        prompt: prompt.toString(), // Ensure prompt is a string
+        prompt: prompt.toString(),
         platforms: [selectedPlatform],
         userId: session.user.id,
-        ...(contextPrompt && { contextPrompt }), // Only include contextPrompt if it exists
+        ...(contextPrompt && { contextPrompt }),
       };
-
-      // Log the request details (safely)
-      console.error("Making request with:", {
-        hasPrompt: !!requestBody.prompt,
-        promptLength: requestBody.prompt.length,
-        platform: requestBody.platforms[0],
-        hasUserId: !!requestBody.userId,
-        hasContext: !!contextPrompt,
-      });
 
       // Get the base URL based on the environment
       const baseUrl = window.location.origin;
-      console.error("Using base URL:", baseUrl);
 
       // Call the generate API with auth token
       const response = await fetch(`${baseUrl}/api/generate`, {
@@ -181,41 +172,35 @@ export default function Platforms() {
         body: JSON.stringify(requestBody),
       });
 
-      // Log the response status
-      console.error("Response status:", response.status);
+      // Get the response data first
+      const responseData = await response.json();
 
       if (!response.ok) {
-        let errorMessage = "Failed to generate content";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-          console.error("Error details:", errorData);
-        } catch (e) {
-          console.error("Failed to parse error response:", e);
-        }
-
-        // Log the full error context
-        console.error("Error context:", {
+        // Log detailed error information
+        const errorDetails = {
           status: response.status,
           statusText: response.statusText,
-          hasPrompt: !!requestBody.prompt,
-          promptLength: requestBody.prompt.length,
-          platform: requestBody.platforms[0],
-          hasUserId: !!requestBody.userId,
-          baseUrl,
-        });
+          error: responseData.error || "Unknown error",
+          details: responseData.details || "No additional details",
+          request: {
+            hasPrompt: !!requestBody.prompt,
+            promptLength: requestBody.prompt.length,
+            platform: requestBody.platforms[0],
+            hasUserId: !!requestBody.userId,
+            hasContext: !!contextPrompt,
+          }
+        };
+
+        // Store error details in sessionStorage for debugging
+        sessionStorage.setItem("lastError", JSON.stringify(errorDetails));
+
+        // Show detailed error message to user
+        const errorMessage = responseData.error || responseData.message || "Falha ao gerar conteúdo";
+        const errorDetailsMessage = responseData.details ? `\nDetalhes: ${responseData.details}` : "";
+        toast.error(`${errorMessage}${errorDetailsMessage}`);
 
         throw new Error(errorMessage);
       }
-
-      const data = await response.json();
-      
-      // Log successful response
-      console.error("Success response:", {
-        hasId: !!data.id,
-        hasContent: !!data.script_result,
-        hasAnalysis: !!data.content_analysis,
-      });
 
       // Store the results in session storage
       sessionStorage.setItem("currentPrompt", prompt.toString());
@@ -224,15 +209,15 @@ export default function Platforms() {
         JSON.stringify([
           {
             platform: selectedPlatform,
-            content: data.script_result || data.content,
-            viralScore: data.viral_score || data.viralScore,
-            contentAnalysis: data.content_analysis || data.contentAnalysis,
+            content: responseData.script_result || responseData.content,
+            viralScore: responseData.viral_score || responseData.viralScore,
+            contentAnalysis: responseData.content_analysis || responseData.contentAnalysis,
           },
         ])
       );
 
       // Use consistent id field from response
-      const contentId = data.id;
+      const contentId = responseData.id;
       if (contentId) {
         sessionStorage.setItem("contentId", contentId);
         router.push(`/content?id=${contentId}`);
@@ -240,15 +225,21 @@ export default function Platforms() {
         throw new Error("No content ID received in response");
       }
     } catch (error) {
-      // Log the full error
-      console.error("Full error:", {
-        message: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : "No stack trace",
-      });
-      
-      toast.error(
-        error instanceof Error ? error.message : "Falha ao gerar conteúdo"
-      );
+      // Get the last error from sessionStorage if available
+      const lastError = sessionStorage.getItem("lastError");
+      const errorDetails = lastError ? JSON.parse(lastError) : null;
+
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : "Falha ao gerar conteúdo";
+      const detailsMessage = errorDetails ? `\nStatus: ${errorDetails.status}\nDetalhes: ${errorDetails.details}` : "";
+      toast.error(`${errorMessage}${detailsMessage}`);
+
+      // Store error for debugging
+      sessionStorage.setItem("lastError", JSON.stringify({
+        message: errorMessage,
+        details: errorDetails,
+        timestamp: new Date().toISOString(),
+      }));
     } finally {
       setLoading(false);
     }
