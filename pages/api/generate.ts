@@ -142,44 +142,52 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.error("API handler started");
-  
-  // Log environment variables (safely)
-  console.error("Environment check:", {
-    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  });
-
-  // Enable CORS
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,OPTIONS,PATCH,DELETE,POST,PUT"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-  );
-
-  // Handle preflight request
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
-
-  // Validate request method
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  // Ensure we haven't already sent a response
+  let hasResponded = false;
+  const sendResponse = (statusCode: number, data: any) => {
+    if (!hasResponded) {
+      hasResponded = true;
+      res.status(statusCode).json(data);
+    }
+  };
 
   try {
+    // Add CORS headers first
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
+    );
+
+    // Handle preflight request
+    if (req.method === "OPTIONS") {
+      return sendResponse(200, { status: "ok" });
+    }
+
+    // Validate request method
+    if (req.method !== "POST") {
+      return sendResponse(405, { error: "Method not allowed" });
+    }
+
+    console.error("API handler started");
+    
+    // Log environment variables (safely)
+    console.error("Environment check:", {
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    });
+
     // Get the auth token from the request header
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
       console.error("Missing or invalid authorization header");
-      return res.status(401).json({ error: "Missing authorization header" });
+      return sendResponse(401, { error: "Missing authorization header" });
     }
 
     const token = authHeader.split(" ")[1];
@@ -211,7 +219,7 @@ export default async function handler(
     });
 
     if (authError || !user) {
-      return res.status(401).json({ 
+      return sendResponse(401, { 
         error: "Invalid authorization token",
         details: authError?.message 
       });
@@ -230,7 +238,7 @@ export default async function handler(
       });
     } catch (e) {
       console.error("Failed to parse request body:", e);
-      return res.status(400).json({ 
+      return sendResponse(400, { 
         error: "Invalid request body",
         details: e instanceof Error ? e.message : "Unknown error"
       });
@@ -244,7 +252,7 @@ export default async function handler(
         hasUserId: !!body.userId,
         hasEmail: !!body.email,
       });
-      return res.status(400).json({
+      return sendResponse(400, {
         error: "Missing required fields",
         details: "Please provide all required fields: prompt, platforms, userId, and email"
       });
@@ -256,7 +264,7 @@ export default async function handler(
         requestUserId: body.userId,
         sessionUserId: user.id
       });
-      return res.status(403).json({
+      return sendResponse(403, {
         error: "Unauthorized",
         details: "User ID does not match authenticated user"
       });
@@ -282,7 +290,7 @@ export default async function handler(
 
           if (!searchError && existingPrompts && existingPrompts.length > 0) {
             const existingPrompt = existingPrompts[0];
-            return res.status(200).json({
+            return sendResponse(200, {
               result: existingPrompt.script_result,
               contentAnalysis: existingPrompt.content_analysis,
               isExisting: true,
@@ -391,7 +399,7 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
           });
 
           // Return a detailed error response
-          return res.status(500).json({
+          return sendResponse(500, {
             error: "Erro ao gerar conteúdo",
             details: error.message,
             type: error.type || 'unknown',
@@ -415,7 +423,7 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
 
       } catch (error: any) {
         console.error("Unexpected error during OpenAI request setup:", error);
-        return res.status(500).json({
+        return sendResponse(500, {
           error: "Erro ao configurar requisição",
           details: error.message
         });
@@ -423,7 +431,7 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
 
       if (!completion?.choices?.[0]?.message?.content) {
         console.error("No content in OpenAI response");
-        return res.status(500).json({
+        return sendResponse(500, {
           error: "No content generated",
           details: "The AI model did not return any content"
         });
@@ -605,7 +613,7 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
         }
 
         // After the loop, return the first prompt's ID
-        return res.status(200).json({
+        return sendResponse(200, {
           id: firstPromptId,
           script_result: result,
           content_analysis: contentAnalysis,
@@ -617,16 +625,22 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
       }
     } catch (error: any) {
       console.error("Unexpected error:", error);
-      return res.status(500).json({
+      return sendResponse(500, {
         error: "An unexpected error occurred",
         details: error.message,
       });
     }
   } catch (error: any) {
-    console.error("Handler error:", error);
-    return res.status(500).json({
-      error: "An unexpected error occurred",
+    console.error("Top-level handler error:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+    
+    return sendResponse(500, {
+      error: "Erro interno no servidor",
       details: error.message,
+      type: error.name || 'unknown'
     });
   }
 }
