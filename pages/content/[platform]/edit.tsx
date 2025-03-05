@@ -61,6 +61,7 @@ export default function ContentEdit() {
             (platform as string).charAt(0).toUpperCase() +
             (platform as string).slice(1),
         },
+        title: content as string,
         content: content as string,
         viralScore: Number(viralScore) || 0,
         readabilityLevel: "Advanced", // You can add more metrics as needed
