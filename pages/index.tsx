@@ -202,9 +202,11 @@ export default function Home() {
                 <Link href="#features" className="text-gray-600">
                   Recursos
                 </Link>
-                <Link href="#pricing" className="text-gray-600">
-                  Preços
-                </Link>
+                {!showWaitingList && (
+                  <Link href="#pricing" className="text-gray-600">
+                    Preços
+                  </Link>
+                )}
                 {!showWaitingList && (
                   <Link
                     href="/signup"
@@ -229,11 +231,11 @@ export default function Home() {
           <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-5xl font-bold mb-6">
-                Nunca mais perca tempo e dinheiro com{' '}
-                <span className="text-[#0066FF]">criação de roteiros</span>
+                Criar roteiros de conteúdos nunca foi tão{' '}
+                <span className="text-[#0066FF]">fácil</span>
               </h2>
               <p className="text-xl text-gray-600 mb-8">
-                A YouZit transforma suas ideias em roteiros envolventes analisados por IA
+                Pare de gastar horas planejando conteúdos e deixe a IA fazer isso por você.
               </p>
             </div>
             <div className="relative bg-gray-100 rounded-3xl p-8">
