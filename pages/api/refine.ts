@@ -27,6 +27,62 @@ interface PromptRow {
   updated_at: string;
 }
 
+// Add function to get model configuration
+const getModelConfiguration = async () => {
+  try {
+    console.error('Fetching model configuration...');
+    
+    // Fetch the active model configuration
+    const { data, error } = await supabase
+      .from('models')
+      .select('name, agent')
+      .eq('active', true)
+      .single();
+
+    console.error('Model configuration query result:', {
+      hasData: !!data,
+      hasError: !!error,
+      errorMessage: error?.message,
+      modelData: data ? { name: data.name, agent: data.agent } : null
+    });
+
+    if (error) {
+      throw new Error(`Failed to fetch model configuration: ${error.message}`);
+    }
+
+    if (!data || !data.agent) {
+      throw new Error('No active model configuration found in database');
+    }
+
+    // Parse the agent string into a JSON object
+    const agentConfig = typeof data.agent === 'string' ? JSON.parse(data.agent) : data.agent;
+
+    if (!agentConfig.type || !agentConfig.settings) {
+      throw new Error('Invalid model configuration format: missing required fields (type or settings)');
+    }
+
+    // Validate required settings
+    const requiredSettings = ['temperature', 'max_tokens', 'top_p', 'frequency_penalty', 'presence_penalty'];
+    const missingSettings = requiredSettings.filter(setting => !agentConfig.settings[setting]);
+    
+    if (missingSettings.length > 0) {
+      throw new Error(`Invalid model configuration: missing required settings: ${missingSettings.join(', ')}`);
+    }
+
+    // Combine the model type with settings
+    const config = {
+      model: agentConfig.type,
+      ...agentConfig.settings
+    };
+
+    console.error('Using configuration:', config);
+    return config;
+  } catch (error) {
+    console.error('Error in getModelConfiguration:', error);
+    throw error;
+  }
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -100,14 +156,22 @@ IMPORTANT:
 5. Return the COMPLETE content with ONLY the requested changes
 6. Do not summarize or remove any sections`;
 
+    // Get model configuration
+    const modelConfig = await getModelConfiguration();
+    
+    console.error("OpenAI request details:", {
+      ...modelConfig,
+      messageCount: 2,
+      systemMessageLength: systemPrompt.length,
+      userMessageLength: userPrompt.length,
+    });
+
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      ...modelConfig,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.7,
-      max_tokens: 2000,
     });
 
     const result = completion.choices[0].message.content;

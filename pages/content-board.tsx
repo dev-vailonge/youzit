@@ -493,7 +493,7 @@ export default function ContentBoard() {
                                       width={20}
                                       height={20}
                                     />
-                                    <span className="text-sm">
+                                    <span className="text-sm line-clamp-2">
                                       {item.prompt?.prompt_text ||
                                         item.title ||
                                         "Sem título"}

@@ -48,6 +48,7 @@ export default function Platforms() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const router = useRouter();
   const { prompt } = router.query;
 
@@ -58,19 +59,7 @@ export default function Platforms() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        console.error("Starting user check...");
-        
-        // First check session
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        console.error("Session check result:", {
-          hasSession: !!session,
-          hasError: !!sessionError,
-          errorMessage: sessionError?.message,
-        });
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session) {
           console.error("Session error:", sessionError);
@@ -79,19 +68,7 @@ export default function Platforms() {
           return;
         }
 
-        // Then get user details
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        console.error("User check result:", {
-          hasUser: !!user,
-          hasError: !!userError,
-          errorMessage: userError?.message,
-          userId: user?.id,
-          userEmail: user?.email,
-        });
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (userError || !user) {
           console.error("User error:", userError);
@@ -101,6 +78,7 @@ export default function Platforms() {
         }
 
         setUser(user);
+        setSessionChecked(true);
       } catch (error) {
         console.error("Error in checkUser:", error);
         toast.error("Erro ao verificar usuário");
@@ -108,8 +86,10 @@ export default function Platforms() {
       }
     };
 
-    checkUser();
-  }, [router]);
+    if (!sessionChecked) {
+      checkUser();
+    }
+  }, [router, sessionChecked]);
 
   const togglePlatform = (platformId: string) => {
     setSelectedPlatform(platformId === selectedPlatform ? "" : platformId);
@@ -131,57 +111,24 @@ export default function Platforms() {
 
   const handleGenerate = async () => {
     try {
-      console.error("Starting content generation...");
-      
-      // Check if we have a prompt from the URL
       if (!router.isReady) {
-        console.error("Router not ready");
         toast.error("Aguarde o carregamento da página");
         return;
       }
 
       if (!prompt) {
-        console.error("No prompt in URL");
         toast.error("Por favor, insira um prompt");
         return;
       }
 
       if (!selectedPlatform) {
-        console.error("No platform selected");
         toast.error("Por favor, selecione uma plataforma");
         return;
       }
 
-      // Get current session
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      console.error("Session check in handleGenerate:", {
-        hasSession: !!session,
-        hasError: !!sessionError,
-        errorMessage: sessionError?.message,
-      });
-
-      if (sessionError || !session) {
-        console.error("Session error in handleGenerate:", sessionError);
+      if (!user) {
         toast.error("Por favor, faça login para continuar");
         router.push("/signin");
-        return;
-      }
-
-      // Log session data (safely)
-      console.error("Session data:", {
-        hasUser: !!session.user,
-        userId: session.user?.id,
-        hasEmail: !!session.user?.email,
-        accessToken: !!session.access_token,
-      });
-
-      if (!session.user?.email) {
-        console.error("User email is missing from session");
-        toast.error("Erro: Email do usuário não encontrado");
         return;
       }
 
@@ -199,39 +146,28 @@ export default function Platforms() {
       const requestBody = {
         prompt: prompt.toString(),
         platforms: [selectedPlatform],
-        userId: session.user.id,
-        email: session.user.email,
+        userId: user.id,
+        email: user.email,
         ...(contextPrompt && { contextPrompt }),
       };
 
-      // Log request body (safely)
-      console.error("Request body:", {
-        hasPrompt: !!requestBody.prompt,
-        promptLength: requestBody.prompt.length,
-        platform: requestBody.platforms[0],
-        hasUserId: !!requestBody.userId,
-        hasEmail: !!requestBody.email,
-        hasContext: !!contextPrompt,
-      });
-
       // Call the generate API with auth token
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/generate', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("API Error:", errorData);
         throw new Error(errorData.message || "Failed to generate content");
       }
 
       const responseData = await response.json();
-      console.log("API Response:", responseData);
 
       // Store the results in session storage with the correct structure
       const contentResult = {

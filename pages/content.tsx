@@ -103,6 +103,7 @@ export default function Content() {
     content: string;
     viralScore: number;
   } | null>(null);
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -820,6 +821,22 @@ export default function Content() {
                         </svg>
                       </button>
                     )}
+                  </div>
+                </div>
+
+                {/* User's Original Prompt */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm text-gray-500">Prompt original:</div>
+                    <button
+                      onClick={() => setIsPromptExpanded(!isPromptExpanded)}
+                      className="text-sm text-[#0066FF] hover:text-blue-700"
+                    >
+                      {isPromptExpanded ? 'Ver menos' : 'Ver mais'}
+                    </button>
+                  </div>
+                  <div className={`text-gray-700 ${!isPromptExpanded ? 'line-clamp-2' : ''}`}>
+                    {content.prompt_text}
                   </div>
                 </div>
 

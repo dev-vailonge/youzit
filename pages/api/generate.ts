@@ -8,13 +8,80 @@ if (!process.env.OPENAI_API_KEY) {
   throw new Error("Missing OPENAI_API_KEY environment variable");
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable");
+}
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable");
+}
+
+// Initialize Supabase client with anon key
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 // Initialize OpenAI with your API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Add function to get model configuration
+const getModelConfiguration = async () => {
+  try {
+    console.error('Fetching model configuration...');
+    
+    // Fetch the active model configuration
+    const { data, error } = await supabase
+      .from('models')
+      .select('name, agent')
+      .eq('active', true)
+      .single();
+
+    console.error('Model configuration query result:', {
+      hasData: !!data,
+      hasError: !!error,
+      errorMessage: error?.message,
+      modelData: data ? { name: data.name, agent: data.agent } : null
+    });
+
+    if (error) {
+      throw new Error(`Failed to fetch model configuration: ${error.message}`);
+    }
+
+    if (!data || !data.agent) {
+      throw new Error('No active model configuration found in database');
+    }
+
+    // Parse the agent string into a JSON object
+    const agentConfig = typeof data.agent === 'string' ? JSON.parse(data.agent) : data.agent;
+
+    if (!agentConfig.type || !agentConfig.settings) {
+      throw new Error('Invalid model configuration format: missing required fields (type or settings)');
+    }
+
+    // Validate required settings
+    const requiredSettings = ['temperature', 'max_tokens', 'top_p', 'frequency_penalty', 'presence_penalty'];
+    const missingSettings = requiredSettings.filter(setting => !agentConfig.settings[setting]);
+    
+    if (missingSettings.length > 0) {
+      throw new Error(`Invalid model configuration: missing required settings: ${missingSettings.join(', ')}`);
+    }
+
+    // Combine the model type with settings
+    const config = {
+      model: agentConfig.type,
+      ...agentConfig.settings
+    };
+
+    console.error('Using configuration:', config);
+    return config;
+  } catch (error) {
+    console.error('Error in getModelConfiguration:', error);
+    throw error;
+  }
+};
 
 // Add contextPrompt to the request type
 interface GenerateRequest {
@@ -29,323 +96,24 @@ interface GenerateRequest {
 }
 
 // Add a helper function to get platform format
-const getPlatformFormat = (platform: string) => {
-  const formats: { [key: string]: string } = {
-    youtube: `1. YOUTUBE SCRIPT FORMAT (FULL DETAILED SCRIPT REQUIRED):
+const getPlatformFormat = async (platform: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('model_prompts')
+      .select('prompt')
+      .eq('platform', platform.toLowerCase())
+      .single();
 
-    IMPORTANTE:
-1.DO NOT generate just an outline or bullet points. The response must be a fully written script, formatted as spoken dialogue for a YouTube video 
-2.You can adapt it based on your message, audience, and style. 
-3.Not every VIDEO needs to follow this format exactly.
-4.The script must flow naturally as if the creator were speaking to an audience as a storyteller.
-5.This prompt generates a full YouTube script, not just tips. It adapts completely to the given topic, audience, and style avoiding generic examples
-6.The final output list 5 the benefits of the strategy applied in this script and give user 5 tips to apply it.
-7.Tips and structure breakdown should ONLY appear at the end of the response, after the full script.
+    if (error) {
+      console.error('Error fetching platform format:', error);
+      return '';
+    }
 
-[Video Topic]: The title of the video should be something that calls attention and is intriguing.
-
-[Hook - 5-10 seconds]
-Start with a bold statement, intriguing question, or surprising fact directly related to the topic.
-The goal is to grab attention immediately and create curiosity.
-End with a transition to encourage viewers to keep watching.
-🎤 Example Hook:
-"Want to learn to code but don't know where to start? What if I told you that 90% of beginners quit in the first few months because they follow the wrong path?"
-⏳ "But don' t worry! Today, I'm going to show you a simple, step-by-step guide to learning programming the right way and speeding up your progress!"
-
-[Introduction - 30-60 seconds]
-Give context about the topic and why it matters to the audience.
-Use a relatable experience, personal story, or common struggle to connect with the audience.
-Provide a quick preview of what the video will cover.
-🎤 Example Introduction:
-"If you've ever tried learning to code and felt lost between languages, tutorials, and courses, youre not alone. I went through the same struggle when I started. But after years in the industry, I realized there's a much smarter way to learn programming from scratch."
-
-🚀 "In this video, I'll show you:
-• What you actually need to learn first
-• Which programming language to start with
-• How to avoid the common mistakes that make people quit
-• And how to get your first project or even a job in tech!"*
-
-[Main Content - 7-15 minutes]  
-💡 **Section 1: The Core Concept**  
-   - Explain the **main idea behind the topic** in simple terms.  
-   - Provide an example **directly related to the given input**.  
-   - Example:  
-      - **For "How to learn programming" →** 🖥️ "Programming is like learning a new language. The secret is immersion."  
-
-💡 **Section 2: Step-by-Step Breakdown**  
-   - Provide **a structured guide** (Step 1, Step 2, Step 3…).  
-   - Make it **actionable and easy to follow**.  
-   - Example:  
-      - **For "How to start coding" →**  
-        ✅ Step 1: Pick a beginner-friendly language (Python, JavaScript).  
-        ✅ Step 2: Follow structured courses instead of random tutorials.  
-        ✅ Step 3: Build small projects early on.  
-
-💡 **Section 3: Real-World Examples / Case Study**  
-   - Show how **this knowledge applies in real life**.  
-   - Provide a **story, testimonial, or example** to engage the audience.  
-   - Example:  
-      - **For "Brazilians in Portugal" →** 🇵🇹 "João moved to Lisbon expecting a cheap lifestyle, but he was shocked by the high rent. Heres how he solved it…"  
-
-💡 **Section 4: Common Mistakes & How to Avoid Them**  
-   - Highlight **the most frequent errors related to the topic**.  
-   - Offer clear **solutions and best practices**.  
-   - Example:  
-      - **For "Programming career mistakes" →**  
-        ❌ Mistake: "Only watching tutorials, never practicing."  
-        ✅ Fix: "Start coding as soon as possible—projects matter more than theory."  
-
-💡 **Section 5: Pro Tips & Hidden Insights**  
-   - Share **expert advice, little-known tricks, or strategies**.  
-   - Position it as **exclusive knowledge** for those who stayed until the end.  
-   - Example:  
-      - **For "Investing for beginners" →** 📈 "Most beginners only look at stock price, but real investors analyze company fundamentals."  
-
-🔄 **Smooth Transitions Between Sections**  
-   - Always ensure a natural flow.  
-   - Example: "Now that you know the steps, lets talk about the biggest mistakes to avoid."  
-
-[Engagement Prompts]  
-• Include **at least two audience interaction questions** within the video.  
-• Examples:  
-   - **For "Learning to code" →** "Whats the hardest part of coding for you? Tell me in the comments!"  
-   - **For "Living in Portugal" →** "Would you rather live in Lisbon or Porto? Why?"  
-
-[Final Takeaways - 60-90 seconds]  
-• Recap **the most important lessons** from the video.  
-• Add a **bonus tip or insight** as a reward for those who watched until the end.  
-
-[Call to Action - 10-15 seconds]  
-• Encourage a **specific next step**, rather than just saying "Like & Subscribe."  
-• Examples:  
-   - "I have a full guide on this—check the link in the description!"  
-   - "Follow me for weekly content on [topic]!"  
-   - "Comment below if you want me to cover another part of this topic!"  
-
-`,
-
-    instagram: `2. INSTAGRAM FORMAT:
-
-IMPORTANTE:
-1. DO NOT generate just an outline or bullet points. The response must be a fully written reels and carrossel  but keep the subtitles and structures, formatted naturally as if the creator were speaking to their audience.
-2. You can adapt it based on your message, audience, and style.
-3. Not every post needs to follow this format exactly.
-4. The final output should list **5 benefits of the strategy applied in this post** and give **5 tips for applying it.**
-5. Structure breakdown should ONLY appear at the end of the response.
-
-REELS (15-60 seconds):
-[Hook - 3-5 seconds]
-- Start with **a bold statement, intriguing question, or surprising fact** directly related to the topic.  
-- Example Hooks:  
-  - 🚀 *"Most people do THIS wrong in coding… Are you one of them?"*  
-  - 🤯 *"You won't believe how simple this trick is!"*  
-  - 🔥 *"Want to improve at [topic] in just 30 seconds? Watch this!"*  
-- End with a **tease to keep viewers engaged:**  
-  - *"Stay until the end for the best tip!"*
-
-[Main Content - 10-45 seconds]
-- Deliver value **fast and concisely.  
-- Use an engaging structure like:  
-  - **Problem → Solution → Benefit  
-  - **Step-by-Step Quick Tips (1-2-3 Format)  
-  - **"Most people fail at X because… but heres the fix!"
-- Use **captions, visual aids (text overlays, images), and engaging edits.
-
-[Call to Action - 5-10 seconds]  
-- Encourage interaction in a natural, conversational way.  
-- Example CTAs:  
-  - Follow for more quick tips!
-  - Save this for later!  
-  - Comment YES if this was helpful!  
-  - DM me X for [free resource]!  
-
-
-[Carousel Format] (7-10 slides recommended)
-[Slide 1: Hook]
-- Grab attention immediately with a strong visual + engaging text.  
-  - Example Hooks:  
-    - Avoid these 3 common mistakes!
-    - How to master [topic] in just 5 steps!
-    - People think this doesn't work, but here's proof!
-  
-[Slides 2-6: Step-by-Step Content]
-- Each slide should focus on ONE key point for clarity.  
-  - Suggested breakdown:  
-    - Define the problem or introduce the topic.  
-    - Provide clear, actionable steps.  
-    - Add a bonus tip, expert insight, or surprising fact.  
-  
-[Slide 7 (Optional): Common Mistakes & Fixes]
-- Showcase frequent mistakes & solutions.  
-  - Example:  
-    - Mistake: "Only watching tutorials, never practicing."
-    - Fix: "Start coding small projects ASAP!"
-  
-[Final Slide: Strong Call to Action]
-- Drive engagement & next steps.  
-  - Example CTAs:  
-    - Follow for more!  
-    - Save this post for later!  
-    - Comment YES if you found this helpful!  
-    - Check my bio for [guide/resource]!  
-`,
-
-    newsletter: `3. NEWSLETTER FORMAT:
-
-IMPORTANTE:
-1. DO NOT generate just an outline or bullet points. The response must be a fully written email but keep the subtitles and structures, formatted naturally as if the creator were speaking to their audience.
-2. The email should tell a story, provide actionable insights, and engage the reader.
-3. Not every email needs to follow this format exactly.
-4. The final output should list **5 benefits of this strategy** and **5 tips to improve it.**
-5. Structure breakdown should ONLY appear at the end of the response.
-
-[Subject Line]: {Compelling Headline}  
-• Make it **intriguing, benefit-driven, or curiosity-inducing** to boost open rates.  
-• Examples (adapt as needed):  
-   - "The #1 Mistake That's Killing Your Productivity"  
-   - "How I Fixed My Code in 5 Minutes (After Struggling for 5 Hours)"  
-   - "The Secret to Growing as a Developer (That No One Talks About)"  
-• Keep it short (under **50 characters**) and **avoid spammy words** like "free" or "urgent."
-
-[Preview Text]: {1-2 Sentence Teaser}  
-• This appears in the inbox **right after the subject line** – make it a strong hook!  
-• Examples:  
-   - "Most developers don't realize how much time they waste on this…"  
-   - "I wish someone had told me this earlier in my career."  
-
-[Introduction]: {Story/Hook}  
-• Start with a **relatable story, thought-provoking statement, or bold question**.  
-• The goal is to **hook the reader** and create an emotional or intellectual connection.  
-• Example structures:  
-   - **"Let me tell you a quick story… (personal experience)"**  
-   - **"Ever felt stuck trying to [solve problem]? You're not alone."**  
-   - **"Here's something I wish I knew when I started…"**  
-
-[Main Body]  
-• **Section 1: Define the Problem**  
-   - Explain the challenge or misconception.  
-   - Make the reader **feel understood** by describing their pain points.  
-
-• **Section 2: Solutions & Examples**  
-   - Provide actionable insights, **real-world examples**, or expert advice.  
-   - Use **bullet points or bolded key takeaways** for easy scanning.  
-
-• **Section 3: Action Steps**  
-   - Give the reader **a clear next step** to apply what they learned.  
-   - Example:  
-     - ✅ "Try this technique today and see the difference."  
-     - 🚀 "Here's a simple way to fix this starting now…"  
-
-[CTA]: {Clear Next Step}  
-• Encourage the reader to **take action** – make it **specific and benefit-driven**.  
-• Examples (adjust per goal):  
-   - 🎯 "Reply and tell me your biggest challenge with X!"  
-   - 📩 "Click here to get my free [resource]!"  
-   - 🔗 "Watch this related video to dive deeper."  
-   - 🏆 "Join my [community, newsletter, mentorship program] for more exclusive content!"  
-
-`,
-
-    linkedin: ` 
-    4. LINKEDIN POST FORMAT (FULL DETAILED POST REQUIRED):
-
-IMPORTANTE:
-1. DO NOT generate just an outline or bullet points. The response must be a fully written post but keep the subtitles and structures, formatted naturally as if the creator were speaking to their audience.
-2. The post should include **storytelling, insights, and engagement techniques**.
-3. Not every post needs to follow this format exactly.
-4. The final output should list **5 benefits of this strategy** and **5 tips to improve it.**
-5. Structure breakdown should ONLY appear at the end of the response.
-
-[Opening Hook]: {Attention-Grabber}  
-• The first **1-2 sentences** should **stop the scroll**.  
-• Suggested formats (adapt as needed):      
-   - **A bold statement:** "Most developers do this wrong… and its costing them opportunities."  
-   - **A surprising fact:** "80% of people fail at X, but not for the reason you think."  
-   - **A thought-provoking question:** "Whats the biggest mistake youve made in your career?"  
-   - **A personal insight:** "Looking back, I wish I had learned this sooner…"  
-
-[Story]: {Personal Experience or Real-World Context}  
-• Share a **short, engaging story** that sets up the lesson.  
-• Can be a **personal challenge, success, failure, or turning point**.  
-• Keep it **authentic and relatable** to increase engagement.  
-
-[Main Points]: {3-5 Insights or Key Takeaways}  
-• Break down the **lesson into clear, scannable insights**.  
-• Use bullet points or short paragraphs to make it easy to read.  
-• Example structures:  
-   - **Lessons from failure:** "Heres what I learned after making this mistake…"  
-   - **Step-by-step guide:** "If you want to [achieve goal], do this…"  
-   - **Industry insight:** "Most people think X, but the reality is Y."  
-• Add **emojis or formatting** to make it visually appealing.  
-
-[Engagement Q]: {Discussion Prompt}  
-• Invite the audience to **share their thoughts or experiences**.  
-• Example prompts:  
-   - "Whats your biggest lesson in [topic]?"  
-   - "Have you ever struggled with this? How did you handle it?"  
-   - "Whats one thing you wish you knew earlier?"
-`,
-
-    twitter: `
-
-    5. TWITTER THREAD FORMAT (FULLY WRITTEN THREAD REQUIRED):
-
-IMPORTANTE:
-1. DO NOT generate just an outline or bullet points. The response must be a fully written Twitter thread but keep the subtitles and structures, formatted naturally for engagement.
-2. The first tweet must **hook readers and create curiosity**.
-3. Not every thread needs to follow this format exactly.
-4. The final output should list **5 benefits of this strategy** and **5 tips to improve it.**
-5. Structure breakdown should ONLY appear at the end of the response.
-
-This [Tweet 1]: {Hook + Thread Preview}  
-• Your first tweet should **stop the scroll** and make people want to read the thread.  
-• Suggested formats (adapt as needed):  
-   - **A bold statement:** "Most people fail at [X] because they don't know this…"  
-   - **A surprising fact:** "You're using [popular tool] wrong. Here's why."  
-   - **A curiosity-driven opener:** "I spent 10 years learning [X]. Here are the 5 biggest lessons (that no one tells you)."  
-   - **A problem-solution hook:** "Struggling with [X]? This thread will fix that."  
-• End with **a cliffhanger**:  
-   - "Let me explain 🧵👇"  
-
-[Tweets 2-8]: {Main Content Points}  
-• Each tweet should **deliver one key insight**, keeping it **short and engaging**.  
-• Suggested structures (adjust as needed):  
-   - **Step-by-step breakdown:** "Here's exactly how to do X in 5 simple steps…"  
-   - **Lessons from experience:** "After failing at X multiple times, here's what finally worked…"  
-   - **Common mistakes & fixes:** "Most people do this wrong. Instead, try this…"  
-   - **Data-driven insights:** "Studies show that X improves Y by Z%. Here's why it matters…"  
-• Use **formatting tricks** for better readability:  
-   - ✅ Use bullet points  
-   - 🔥 Add emojis (sparingly)  
-   - ✍️ Highlight key takeaways  
-
-[Final Tweet]: {Engagement CTA}  
-• Encourage **replies, shares, or follows** with a strong closing.  
-• Example CTAs (adjust per goal):  
-   - "Which of these was the most useful? Reply and let me know!"  
-   - "Follow me for more threads like this on [topic]!"  
-   - "If you found this helpful, like & retweet to share with others!"  
-   - "Save this thread so you don't forget it!"  
-
-    `,
-
-    facebook: `
-    6. FACEBOOK POST FORMAT (FULLY WRITTEN POST REQUIRED):
-
-IMPORTANTE:
-1. DO NOT generate just an outline or bullet points. The response must be a fully written Facebook post but keep the subtitles and structures, formatted naturally as if the creator were speaking to their audience.
-2. The post should include **storytelling, engagement techniques, and a strong CTA.**
-3. Not every post needs to follow this format exactly.
-4. The final output should list **5 benefits of this strategy** and **5 tips to improve it.**
-5. Structure breakdown should ONLY appear at the end of the response.
-
-[Hook]: {Relatable opening}
-[Story]: {Main content in chunks}
-[Question]: {Engagement prompt}
-[CTA]: {Clear action step}`,
-  };
-
-  return formats[platform.toLowerCase()] || "";
+    return data?.prompt || '';
+  } catch (error) {
+    console.error('Error in getPlatformFormat:', error);
+    return '';
+  }
 };
 
 const cleanScriptResult = (result: string): string => {
@@ -489,17 +257,21 @@ export default async function handler(
     console.error("Token received:", token ? "present" : "missing");
 
     // Create a new Supabase client with the token
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
         },
-      },
-    });
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
 
     // Verify the token
     const {
@@ -599,7 +371,11 @@ export default async function handler(
       console.log("Starting OpenAI completion");
       let completion;
       try {
-        // Log the exact request we're about to make
+        // Get platform formats before creating messages
+        const platformFormats = await Promise.all(
+          platforms.map(async (platform) => await getPlatformFormat(platform))
+        );
+
         const messages: ChatCompletionMessageParam[] = [
           {
             role: "system",
@@ -653,18 +429,19 @@ IMPORTANT:
           {
             role: "user",
             content: `Create content about "${prompt}" for ${platforms.join(", ")}.
-Platform format: ${platforms.map((platform) => getPlatformFormat(platform)).join("\n")}
+Platform format: ${platformFormats.join("\n")}
 Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
           }
         ];
 
+        // Get model configuration
+        const modelConfig = await getModelConfiguration();
+        
         console.error("OpenAI request details:", {
-          model: "gpt-3.5-turbo",
+          ...modelConfig,
           messageCount: messages.length,
           systemMessageLength: messages[0]?.content?.length ?? 0,
           userMessageLength: messages[1]?.content?.length ?? 0,
-          temperature: 0.7,
-          max_tokens: 2000,
         });
 
         try {
@@ -679,18 +456,18 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
           }
 
           // Make the API call with timeout
-          const timeoutMs = 25000; // 25 seconds
+          const timeoutMs = 60000; // 60 seconds
           const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('OpenAI request timed out')), timeoutMs);
           });
 
-          console.error('Starting OpenAI API call...');
+          console.log('Starting OpenAI API call...');
+          console.log('Using model configuration:', modelConfig);
+          
           completion = await Promise.race([
             openai.chat.completions.create({
-              model: "gpt-3.5-turbo",
+              ...modelConfig,
               messages,
-              temperature: 0.7,
-              max_tokens: 2000,
             }),
             timeoutPromise
           ]) as OpenAI.Chat.Completions.ChatCompletion;
