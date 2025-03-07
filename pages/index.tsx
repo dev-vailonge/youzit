@@ -231,8 +231,9 @@ export default function Home() {
           <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-5xl font-bold mb-6">
-                Criar roteiros de conteúdos nunca foi tão{' '}
-                <span className="text-[#0066FF]">fácil</span>
+                Criar {' '}
+                <span className="text-[#0066FF]"> roteiros de conteúdos </span>
+                 nunca foi tão fácil
               </h2>
               <p className="text-xl text-gray-600 mb-8">
                 Pare de gastar horas planejando conteúdos e deixe a IA fazer isso por você.
@@ -260,8 +261,59 @@ export default function Home() {
           </div>
         </section>
 
-             {/* Pain Points Section */}
-             <section className="bg-gray-50 text-gray-900 py-20 px-4">
+        {/* Waiting List CTA Section */}
+        {showWaitingList && (
+          <section className="py-12 px-4 bg-gray-50">
+            <div className="max-w-3xl mx-auto text-center">
+              <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Digite seu email"
+                  className="w-full md:w-96 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full md:w-auto bg-[#0066FF] text-white px-8 py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Entrando...' : 'Entrar na Lista de Espera'}
+                </button>
+              </form>
+              {message && (
+                <p className={`mt-4 text-sm ${message.includes('Obrigado') ? 'text-green-600' : 'text-red-600'}`}>
+                  {message}
+                </p>
+              )}
+              {userCount > 0 && (
+                <div className="mt-6">
+                  <div className="inline-flex items-center justify-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
+                    <div className="flex -space-x-2">
+                      {waitingListUsers.slice(0, 3).map((user, index) => (
+                        <div
+                          key={index}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${getRandomColor(getInitial(user.email))}`}
+                        >
+                          <span className="text-white font-medium text-sm">
+                            {getInitial(user.email)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-gray-600 text-sm font-medium">
+                      +{userCount - 3} pessoas na lista de espera
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Pain Points Section */}
+        <section className="bg-gray-50 text-gray-900 py-20 px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-5xl font-bold mb-16">
               A YouZit é para você se quer resolver algum desses problemas:
@@ -797,69 +849,70 @@ export default function Home() {
           </section>
         )}
 
-        {/* Waitlist Section */}
-        <section className="bg-[#0066FF] text-white py-20 px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-4xl font-bold mb-6">
-              Entre na Lista de Espera
-            </h2>
-            <p className="text-xl mb-8">
-              Seja um dos primeiros a experimentar o futuro da criação de
-              conteúdo
-            </p>
-            <form
-              onSubmit={handleSubmit}
-              className="max-w-md mx-auto space-y-4"
-            >
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Digite seu email"
-                className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
-                required
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-white text-[#0066FF] px-8 py-3 rounded-lg hover:bg-gray-100 transition"
-              >
-                {loading ? 'Entrando...' : 'Entrar Agora'}
-              </button>
-            </form>
-
-            {/* Waiting List Display */}
-            <div className="mt-12">
-              <div className="inline-flex items-center justify-center gap-2 bg-white/10 px-4 py-2 rounded-full">
-                <div className="flex -space-x-2">
-                  {waitingListUsers.slice(0, 3).map((user, index) => (
-                    <div
-                      key={index}
-                      className="w-8 h-8 rounded-full bg-[#0066FF] border-2 border-[#0066FF] flex items-center justify-center relative"
-                      title={user.email}
-                    >
-                      <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <span className="text-[#0066FF] font-medium text-xs">
-                          {getInitial(user.email)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  
-                </div>
-                <p className="text-white/80 text-sm font-medium">
-                  +{userCount - 3} pessoas estão esperando para usar o YouZit...
-                </p>
-              </div>
-            </div>
-
-            {message && (
-              <p className={`text-sm ${message.includes('Obrigado') ? 'text-green-200' : 'text-red-200'}`}>
-                {message}
+          {/* Blue Waiting List Section */}
+          {showWaitingList && (
+          <section className="bg-[#0066FF] text-white py-20 px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <h2 className="text-4xl font-bold mb-6">
+                Entre na Lista de Espera
+              </h2>
+              <p className="text-xl mb-8">
+                Seja um dos primeiros a experimentar o futuro da criação de
+                conteúdo
               </p>
-            )}
-          </div>
-        </section>
+              <form
+                onSubmit={handleSubmit}
+                className="max-w-md mx-auto space-y-4"
+              >
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Digite seu email"
+                  className="w-full px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-white text-[#0066FF] px-8 py-3 rounded-lg hover:bg-gray-100 transition"
+                >
+                  {loading ? 'Entrando...' : 'Entrar Agora'}
+                </button>
+              </form>
+
+              {/* Waiting List Display */}
+              <div className="mt-12">
+                <div className="inline-flex items-center justify-center gap-2 bg-white/10 px-4 py-2 rounded-full">
+                  <div className="flex -space-x-2">
+                    {waitingListUsers.slice(0, 3).map((user, index) => (
+                      <div
+                        key={index}
+                        className="w-8 h-8 rounded-full bg-[#0066FF] border-2 border-[#0066FF] flex items-center justify-center relative"
+                        title={user.email}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                          <span className="text-[#0066FF] font-medium text-xs">
+                            {getInitial(user.email)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-white/80 text-sm font-medium">
+                    +{userCount - 3} pessoas estão esperando para usar o YouZit...
+                  </p>
+                </div>
+              </div>
+
+              {message && (
+                <p className={`text-sm ${message.includes('Obrigado') ? 'text-green-200' : 'text-red-200'}`}>
+                  {message}
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Footer */}
         <footer className="bg-gray-100 py-12">
