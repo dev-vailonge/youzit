@@ -162,12 +162,28 @@ export default function Platforms() {
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate content");
+      // Try to parse response as JSON, if it fails, get text content
+      let errorMessage;
+      let responseData;
+      
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        responseData = await response.json();
+      } else {
+        errorMessage = await response.text();
       }
 
-      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          errorMessage || 
+          (responseData && responseData.message) || 
+          "Erro ao gerar conteúdo"
+        );
+      }
+
+      if (!responseData) {
+        throw new Error("Resposta inválida do servidor");
+      }
 
       // Store the results in session storage with the correct structure
       const contentResult = {
@@ -194,7 +210,7 @@ export default function Platforms() {
       });
     } catch (error: any) {
       console.error("Error in handleGenerate:", error);
-      toast.error(error.message || "Failed to generate content");
+      toast.error(error.message || "Erro ao gerar conteúdo");
     } finally {
       setLoading(false);
     }
