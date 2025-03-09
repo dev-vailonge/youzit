@@ -217,7 +217,6 @@ export default async function handler(
       "Access-Control-Allow-Headers",
       "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
     );
-    res.setHeader('Content-Type', 'application/json');
 
     // Handle preflight request
     if (req.method === "OPTIONS") {
@@ -228,36 +227,25 @@ export default async function handler(
     if (req.method !== "POST") {
       return sendResponse(405, {
         error: "METHOD_NOT_ALLOWED",
-        message: "Method not allowed",
-        details: `${req.method} is not supported`
+        message: "Método não permitido",
+        details: `${req.method} não é suportado`
       });
     }
-
-    console.error("API handler started");
-    
-    // Log environment variables (safely)
-    console.error("Environment check:", {
-      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    });
 
     // Get the auth token from the request header
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
-      console.error("Missing or invalid authorization header");
       return sendResponse(401, {
         error: "UNAUTHORIZED",
-        message: "Missing or invalid authorization header",
-        details: "Authorization header must start with Bearer"
+        message: "Autenticação necessária",
+        details: "Token de autenticação ausente ou inválido"
       });
     }
 
     const token = authHeader.split(" ")[1];
-    console.error("Token received:", token ? "present" : "missing");
 
     // Create a new Supabase client with the token
-    const supabase = createClient(
+    const supabaseAuth = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -277,65 +265,35 @@ export default async function handler(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser(token);
-
-    console.error("Auth check:", { 
-      userId: user?.id, 
-      hasError: !!authError,
-      errorMessage: authError?.message 
-    });
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
-      return sendResponse(401, { 
-        error: "Invalid authorization token",
-        details: authError?.message 
+      return sendResponse(401, {
+        error: "UNAUTHORIZED",
+        message: "Token inválido",
+        details: authError?.message || "Erro de autenticação"
       });
     }
 
     // Parse and validate request body
-    let body: GenerateRequest;
-    try {
-      body = JSON.parse(JSON.stringify(req.body));
-      console.error("Request body:", {
-        hasPrompt: !!body.prompt,
-        promptLength: body.prompt?.length,
-        platforms: body.platforms?.length,
-        hasUserId: !!body.userId,
-      });
-    } catch (e) {
-      console.error("Failed to parse request body:", e);
-      return sendResponse(400, { 
-        error: "Invalid request body",
-        details: e instanceof Error ? e.message : "Unknown error"
-      });
-    }
-
-    // Validate required fields
-    if (!body.prompt || !body.platforms || !body.userId) {
-      console.error("Missing required fields:", {
-        hasPrompt: !!body.prompt,
-        hasPlatforms: !!body.platforms,
-        hasUserId: !!body.userId,
-      });
+    const { prompt, platforms, userId, contextPrompt } = req.body as GenerateRequest;
+    
+    if (!prompt || !platforms || !userId) {
       return sendResponse(400, {
-        error: "Missing required fields",
-        details: "Please provide all required fields: prompt, platforms, and userId"
+        error: "INVALID_REQUEST",
+        message: "Requisição inválida",
+        details: "Prompt, plataformas e ID do usuário são obrigatórios"
       });
     }
 
     // Verify user ID matches
-    if (body.userId !== user.id) {
-      console.error("User ID mismatch:", {
-        requestUserId: body.userId,
-        sessionUserId: user.id
-      });
+    if (userId !== user.id) {
       return sendResponse(403, {
-        error: "Unauthorized",
-        details: "User ID does not match authenticated user"
+        error: "FORBIDDEN",
+        message: "Acesso negado",
+        details: "ID do usuário não corresponde ao token"
       });
     }
-
-    const { prompt, platforms, userId, contextPrompt } = body;
 
     // Normalize the prompt by trimming and converting to lowercase
     const normalizedPrompt = prompt.trim().toLowerCase();
@@ -753,18 +711,11 @@ Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
       });
     }
   } catch (error: any) {
-    console.error("Top-level handler error:", {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
-    
+    console.error("Error in API handler:", error);
     return sendResponse(500, {
       error: "SERVER_ERROR",
-      message: "Erro interno no servidor",
-      details: error.message || "Unknown server error",
-      type: error.name || 'unknown',
-      errorId: Date.now().toString(36) + Math.random().toString(36).substr(2)
+      message: "Erro ao processar requisição",
+      details: error.message || "Erro desconhecido"
     });
   }
 }
