@@ -32,27 +32,62 @@ const openai = new OpenAI({
 
 // Create a function to get Supabase admin client
 const getSupabaseAdmin = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  try {
+    // Log environment variables (safely)
+    console.error('Environment check:', {
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      urlLength: process.env.NEXT_PUBLIC_SUPABASE_URL?.length,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      serviceKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length,
+    });
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration');
-  }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error(`Missing Supabase configuration - URL: ${!!supabaseUrl}, Key: ${!!supabaseServiceKey}`);
     }
-  });
+
+    // Create client with explicit configuration
+    const client = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'edge-function'
+        }
+      }
+    });
+
+    return client;
+  } catch (error: any) {
+    console.error('Error creating Supabase client:', error);
+    throw new Error(`Failed to create Supabase client: ${error.message}`);
+  }
 };
 
 // Add function to get model configuration
 const getModelConfiguration = async () => {
   try {
-    console.error('Fetching model configuration...');
+    console.error('Starting model configuration fetch...');
     const supabaseAdmin = getSupabaseAdmin();
+    console.error('Supabase client created successfully');
     
+    // Test the connection first
+    const { error: testError } = await supabaseAdmin
+      .from('models')
+      .select('count')
+      .limit(1);
+
+    if (testError) {
+      console.error('Connection test failed:', testError);
+      throw new Error(`Database connection test failed: ${testError.message}`);
+    }
+    console.error('Connection test successful');
+
     // Fetch the active model configuration
     const { data, error } = await supabaseAdmin
       .from('models')
@@ -64,7 +99,7 @@ const getModelConfiguration = async () => {
       hasData: !!data,
       hasError: !!error,
       errorMessage: error?.message,
-      modelData: data ? { name: data.name, agent: data.agent } : null
+      modelData: data ? { name: data.name, hasAgent: !!data.agent } : null
     });
 
     if (error) {
@@ -79,27 +114,20 @@ const getModelConfiguration = async () => {
     const agentConfig = typeof data.agent === 'string' ? JSON.parse(data.agent) : data.agent;
 
     if (!agentConfig.type || !agentConfig.settings) {
-      throw new Error('Invalid model configuration format: missing required fields (type or settings)');
+      throw new Error('Invalid model configuration format: missing required fields');
     }
 
-    // Validate required settings
-    const requiredSettings = ['temperature', 'max_tokens', 'top_p', 'frequency_penalty', 'presence_penalty'];
-    const missingSettings = requiredSettings.filter(setting => !agentConfig.settings[setting]);
-    
-    if (missingSettings.length > 0) {
-      throw new Error(`Invalid model configuration: missing required settings: ${missingSettings.join(', ')}`);
-    }
-
-    // Combine the model type with settings
-    const config = {
+    return {
       model: agentConfig.type,
       ...agentConfig.settings
     };
-
-    console.error('Using configuration:', config);
-    return config;
   } catch (error: any) {
-    console.error('Error in getModelConfiguration:', error);
+    console.error('Detailed error in getModelConfiguration:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      details: error.details
+    });
     throw error;
   }
 };
