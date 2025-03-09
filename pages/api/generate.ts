@@ -25,30 +25,36 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
 }
 
-// Initialize Supabase client with service role key for admin access
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
-
 // Initialize OpenAI with your API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Create a function to get Supabase admin client
+const getSupabaseAdmin = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+};
+
 // Add function to get model configuration
 const getModelConfiguration = async () => {
   try {
     console.error('Fetching model configuration...');
+    const supabaseAdmin = getSupabaseAdmin();
     
     // Fetch the active model configuration
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('models')
       .select('name, agent')
       .eq('active', true)
@@ -92,7 +98,7 @@ const getModelConfiguration = async () => {
 
     console.error('Using configuration:', config);
     return config;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in getModelConfiguration:', error);
     throw error;
   }
@@ -113,7 +119,8 @@ interface GenerateRequest {
 // Add a helper function to get platform format
 const getPlatformFormat = async (platform: string) => {
   try {
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data, error } = await supabaseAdmin
       .from('model_prompts')
       .select('prompt')
       .eq('platform', platform.toLowerCase())
@@ -337,7 +344,8 @@ export default async function handler(
     }));
 
     // Save to database
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data, error } = await supabaseAdmin
       .from('prompts')
       .insert({
         user_id: requestData.userId,
