@@ -531,7 +531,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-center mb-16">
               Recursos Principais
             </h2>
-            <div className="grid md:grid-cols-4 gap-8">
+            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="text-center">
                 <div className="w-16 h-16 bg-[#0066FF]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                   <svg
@@ -578,65 +578,6 @@ export default function Home() {
                 </h3>
                 <p className="text-gray-600">
                   Gerencie todo seu conteúdo em um único lugar com um quadro Kanban intuitivo.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-[#0066FF]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg
-                    className="w-8 h-8 text-[#0066FF]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    />
-                  </svg>
-                </div>
-                <div className="relative inline-block">
-                  <h3 className="text-xl font-semibold mb-4">
-                    Gerador de Conteúdo
-                    <span className="absolute -right-16 -top-1 bg-[#0066FF]/10 text-[#0066FF] text-xs px-2 py-1 rounded-full">
-                      Em breve
-                    </span>
-                  </h3>
-                </div>
-                <p className="text-gray-600">
-                  Gere vídeos, vozes e imagens otimizadas para cada plataforma com IA.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="w-16 h-16 bg-[#0066FF]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg
-                    className="w-8 h-8 text-[#0066FF]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div className="relative inline-block">
-                  <h3 className="text-xl font-semibold mb-4">
-                    Análise de Performance
-                    <span className="absolute -right-16 -top-1 bg-indigo-100 text-indigo-600 text-xs px-2 py-1 rounded-full">
-                      Soon
-                    </span>
-                  </h3>
-                </div>
-                <p className="text-gray-600">
-                  Acompanhe o desempenho do seu conteúdo em todas as
-                  plataformas.
                 </p>
               </div>
             </div>

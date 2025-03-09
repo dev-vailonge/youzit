@@ -192,20 +192,23 @@ export default function ContentBoard() {
         return;
       }
 
-      // Validate the status value
-      const validStatuses: ContentStatus[] = [
-        "draft",
-        "to-do",
-        "in-progress",
-        "done",
-      ];
-      if (!validStatuses.includes(destination.droppableId as ContentStatus)) {
-        console.error("Invalid status:", destination.droppableId);
-        toast.error("Invalid status value");
+      // Validate the status value and map to correct database values
+      const statusMap = {
+        "draft": "draft",
+        "to-do": "todo", // Fix the format to match database
+        "in-progress": "in_progress", // Fix the format to match database
+        "done": "done"
+      } as const;
+
+      type DbStatus = typeof statusMap[keyof typeof statusMap];
+      
+      const newStatus = statusMap[destination.droppableId as keyof typeof statusMap];
+      if (!newStatus) {
+        toast.error("Status inválido");
         return;
       }
 
-      // Update UI first
+      // Update UI first for optimistic update
       setColumns((prev) => {
         const newColumns = [...prev];
         const sourceColumn = newColumns.find(
@@ -227,32 +230,34 @@ export default function ContentBoard() {
         return newColumns;
       });
 
-      // Update Supabase with type assertion
       try {
-        const { error } = await supabase
-          .from("content_board")
-          .update({
-            status: destination.droppableId as ContentStatus,
+        // Update in Supabase with correct status format
+        const { data, error } = await supabase
+          .from('content_board')
+          .update({ 
+            status: newStatus,
+            updated_at: new Date().toISOString()
           })
-          .eq("id", draggableId);
+          .eq('id', draggableId)
+          .select();
 
         if (error) {
-          console.error("Error details:", {
-            error,
-            source: source.droppableId,
-            destination: destination.droppableId,
-            itemId: draggableId,
-          });
-          toast.error("Failed to update status");
-          fetchContents(user.id);
-          return;
+          console.error('Update error:', error);
+          throw error;
         }
 
-        toast.success("Status updated");
-      } catch (error) {
-        console.error("Error:", error);
-        toast.error("Failed to update status");
-        fetchContents(user.id);
+        if (!data || data.length === 0) {
+          throw new Error('No rows were updated');
+        }
+
+        toast.success("Status atualizado");
+      } catch (error: any) {
+        // Revert UI changes on error
+        console.error('Error details:', error);
+        toast.error(`Erro ao atualizar status: ${error.message || 'Erro desconhecido'}`);
+        if (user?.id) {
+          fetchContents(user.id);
+        }
       }
     },
     [user]

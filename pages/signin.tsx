@@ -35,8 +35,8 @@ export default function SignIn() {
           sessionStorage.clear();
           localStorage.clear();
         }
-      } catch (error) {
-        console.error("Error checking auth status:", error);
+      } catch {
+        // Silent fail - auth error
       }
     };
 
@@ -57,9 +57,8 @@ export default function SignIn() {
 
       if (error) throw error;
       setShowSignUp(!data?.enabled);
-    } catch (error) {
-      console.error('Error checking feature flag:', error);
-      setShowSignUp(true);
+    } catch {
+      // Silent fail - feature flag check error
     }
   };
 
@@ -90,13 +89,8 @@ export default function SignIn() {
       }
 
       router.push("/dashboard");
-    } catch (error: any) {
-      console.error("Error:", error);
-      if (error.message.includes('Invalid login credentials')) {
-        setMessage('Email ou senha incorretos. Por favor, verifique suas credenciais.');
-      } else {
-        setMessage(error.message || 'Erro ao fazer login. Por favor, tente novamente.');
-      }
+    } catch {
+      // Silent fail - sign in error
     } finally {
       setLoading(false);
     }
@@ -115,9 +109,8 @@ export default function SignIn() {
         },
       });
       if (error) throw error;
-    } catch (error: any) {
-      console.error("Error:", error);
-      setMessage("Erro ao fazer login com o Google.");
+    } catch {
+      // Silent fail - OAuth error
     }
   };
 

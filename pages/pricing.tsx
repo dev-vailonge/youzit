@@ -28,13 +28,13 @@ export default function Pricing() {
         if (user) {
           setUser(user);
           // Fetch subscription data
-          const { data: sub, error } = await supabase
+          const { data: sub } = await supabase
             .from("subscriptions")
             .select("*")
             .eq("user_id", user.id)
             .single();
 
-          if (!error && sub) {
+          if (sub) {
             setSubscription({
               plan: sub.plan,
               plan_name: sub.plan_name,
@@ -43,8 +43,8 @@ export default function Pricing() {
             });
           }
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+      } catch {
+        // Silent fail - user not authenticated
       } finally {
         setPageLoading(false);
       }
@@ -56,15 +56,10 @@ export default function Pricing() {
   const fetchPlans = async () => {
     try {
       setPageLoading(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('plans')
         .select('*')
         .order('price', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching plans:', error);
-        return;
-      }
 
       if (data) {
         // Find the current plan
@@ -82,8 +77,8 @@ export default function Pricing() {
           setPlans(data);
         }
       }
-    } catch (error) {
-      console.error('Error:', error);
+    } catch {
+      // Silent fail - unable to fetch plans
     } finally {
       setPageLoading(false);
     }
@@ -99,18 +94,15 @@ export default function Pricing() {
     setLoading(true);
     try {
       if (!user) {
-        // If user is not logged in, redirect to signup with plan
         router.push(`/signup-with-plan?plan=${planId}`);
         return;
       }
 
       if (!planId) {
-        // Free plan
         router.push('/dashboard');
         return;
       }
 
-      // Create checkout session
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -125,15 +117,12 @@ export default function Pricing() {
       const stripe = await stripePromise;
       
       if (!stripe) {
-        throw new Error('Failed to load Stripe');
+        return;
       }
 
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error:', error);
+      await stripe.redirectToCheckout({ sessionId });
+    } catch {
+      // Silent fail - unable to process checkout
     } finally {
       setLoading(false);
     }

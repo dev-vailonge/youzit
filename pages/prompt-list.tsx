@@ -43,93 +43,50 @@ export default function PromptList() {
   const itemsPerPage = 5;
 
   useEffect(() => {
-    const checkAuth = async () => {
-      // First check session
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+    const checkUser = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-      if (sessionError || !session) {
-        console.error("Session error:", sessionError);
-        toast.error("Por favor, faça login para continuar");
-        router.push("/signin");
-        return;
+        if (!session) {
+          router.push('/signin');
+          return;
+        }
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+
+        if (user) {
+          setPrompts([]);
+          fetchPrompts(user.id);
+        }
+      } catch {
+        // Silent fail - auth error
+        router.push('/signin');
       }
-
-      // Then get user details
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error("User error:", userError);
-        toast.error("Erro ao carregar dados do usuário");
-        router.push("/signin");
-        return;
-      }
-
-      console.log("User data:", { id: user.id, email: user.email });
-      setLoading(false);
     };
 
-    checkAuth();
+    checkUser();
   }, [router]);
 
-  useEffect(() => {
-    const fetchPrompts = async () => {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+  const fetchPrompts = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('hidden', false)
+        .order('created_at', { ascending: false });
 
-      if (sessionError || !session) {
-        console.error("Session error:", sessionError);
-        return;
-      }
-
-      // Fetch all prompts to get total count
-      const { data: promptsData, error } = await supabase
-        .from("prompts")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .eq("hidden", false)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching prompts:", error);
-        return;
-      }
-
-      // Calculate pagination
-      const totalCount = promptsData.length;
-      const totalPages = Math.ceil(totalCount / itemsPerPage);
-      setTotalPages(totalPages);
-
-      // Process only the current page's prompts
-      const start = (currentPage - 1) * itemsPerPage;
-      const end = start + itemsPerPage;
-      const currentPagePrompts = promptsData.slice(start, end);
-
-      const processedPrompts = currentPagePrompts.map((prompt) => ({
-        id: prompt.id,
-        prompt_text: prompt.prompt_text,
-        created_at: prompt.created_at,
-        platforms: [
-          {
-            name: prompt.platform,
-            id: prompt.platform.toLowerCase(),
-          },
-        ],
-        content_board: prompt.content_board || [],
-      }));
-
-      setPrompts(processedPrompts);
-    };
-
-    fetchPrompts();
-  }, [currentPage]);
+      if (error) throw error;
+      setPrompts(data || []);
+    } catch {
+      // Silent fail - prompts fetch error
+      setPrompts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
