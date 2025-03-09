@@ -14,10 +14,13 @@ export default function Home() {
   const [waitingListUsers, setWaitingListUsers] = useState<{ email: string; signed_up_at: string }[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
 
   useEffect(() => {
     checkWaitingListFlag();
     fetchWaitingListUsers();
+    fetchPlans();
   }, []);
 
   const fetchWaitingListUsers = async () => {
@@ -57,6 +60,29 @@ export default function Home() {
     } catch (error) {
       console.error('Error checking feature flag:', error);
       setShowWaitingList(false);
+    }
+  };
+
+  const fetchPlans = async () => {
+    try {
+      setPlansLoading(true);
+      const { data, error } = await supabase
+        .from('plans')
+        .select('*')
+        .order('price', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching plans:', error);
+        return;
+      }
+
+      if (data) {
+        setPlans(data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setPlansLoading(false);
     }
   };
 
@@ -148,10 +174,6 @@ export default function Home() {
       window.removeEventListener('keydown', handleEsc);
     };
   }, []);
-
-  if (!showWaitingList) {
-    return null;
-  }
 
   return (
     <>
@@ -374,9 +396,9 @@ export default function Home() {
                   <Image
                     src="/img/prompt.png"
                     alt="Faça upload do seu conteúdo"
-                    layout="fill"
-                    objectFit="contain"
-                    className="rounded-2xl"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="rounded-2xl object-contain"
                   />
                 </div>
                 <h3 className="text-2xl font-bold mb-4">Comece com uma ideia</h3>
@@ -394,9 +416,9 @@ export default function Home() {
                   <Image
                     src="/img/platform.png"
                     alt="IA trabalhando"
-                    layout="fill"
-                    objectFit="contain"
-                    className="rounded-2xl"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="rounded-2xl object-contain"
                   />
                 </div>
                 <h3 className="text-2xl font-bold mb-4">Selecione a plataforma</h3>
@@ -414,9 +436,9 @@ export default function Home() {
                   <Image
                     src="/img/content.png"
                     alt="Compartilhe conteúdo"
-                    layout="fill"
-                    objectFit="contain"
-                    className="rounded-2xl"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="rounded-2xl object-contain"
                   />
                 </div>
                 <h3 className="text-2xl font-bold mb-4">Aproveite o conteúdo</h3>
@@ -492,9 +514,12 @@ export default function Home() {
 
             {!showWaitingList && (
               <div className="text-center mt-16">
-                <button className="bg-[#0066FF] text-white px-8 py-4 rounded-lg font-medium hover:bg-blue-600 transition-colors duration-300 shadow-lg hover:shadow-xl">
+                <Link
+                  href="/signup"
+                  className="inline-block bg-[#0066FF] text-white px-8 py-4 rounded-lg font-medium hover:bg-blue-600 transition-colors duration-300 shadow-lg hover:shadow-xl"
+                >
                   Comece a estruturar seu conteúdo com a Youzit!
-                </button>
+                </Link>
               </div>
             )}
           </div>
@@ -625,226 +650,84 @@ export default function Home() {
               <h2 className="text-3xl font-bold text-center mb-16">
                 Planos e Preços
               </h2>
-              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                {/* Free Plan */}
-                <div className="border rounded-xl p-8 flex flex-col">
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">Grátis</h3>
-                    <p className="text-3xl font-bold mb-6">R$0</p>
-                    <ul className="space-y-4">
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        5 prompts no total
-                      </li>
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        Análise básica
-                      </li>
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        IA básica
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="mt-auto pt-8">
-                    <button className="w-full py-3 border border-[#0066FF] text-[#0066FF] rounded-full hover:bg-[#0066FF]/5 transition">
-                      Começar Grátis
-                    </button>
-                  </div>
+              {plansLoading ? (
+                <div className="flex justify-center items-center min-h-[200px]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
-
-                {/* Starter Plan */}
-                <div className="border rounded-xl p-8 bg-[#0066FF] text-white transform scale-105 flex flex-col relative">
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-xs px-3 py-1 rounded-full font-medium">
-                      MAIS POPULAR
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">Starter</h3>
-                    <p className="text-3xl font-bold mb-6">
-                      R$47
-                      <span className="text-lg font-normal opacity-75">/mês</span>
-                    </p>
-                    <ul className="space-y-4">
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-white mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
+              ) : (
+                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                  {plans.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className={`relative rounded-2xl border ${
+                        plan.is_popular
+                          ? 'bg-[#0066FF] text-white transform scale-105'
+                          : 'bg-white'
+                      } p-8 flex flex-col`}
+                    >
+                      {plan.is_popular && (
+                        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                          <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-xs px-3 py-1 rounded-full font-medium">
+                            MAIS POPULAR
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="text-xl font-semibold mb-4">{plan.name}</h3>
+                        <p className="text-3xl font-bold mb-6">
+                          R${plan.price}
+                          {plan.price > 0 && (
+                            <span className={`text-lg font-normal ${plan.is_popular ? 'opacity-75' : 'text-gray-600'}`}>
+                              /mês
+                            </span>
+                          )}
+                        </p>
+                        {plan.yearly_price && (
+                          <div className={`text-sm mb-4 ${plan.is_popular ? 'text-white/80' : 'text-gray-600'}`}>
+                            {plan.yearly_price}
+                          </div>
+                        )}
+                        <ul className="space-y-4">
+                          {plan.description.split(',').map((feature: string, index: number) => (
+                            <li key={index} className="flex items-center">
+                              <svg
+                                className={`w-5 h-5 mr-2 ${plan.is_popular ? 'text-white' : 'text-green-500'}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                              <span className={plan.is_popular ? 'text-white' : 'text-gray-600'}>
+                                {feature.trim()}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="mt-auto pt-8">
+                        <Link
+                          href={plan.price === 0 
+                            ? '/signup'
+                            : `/signup-with-plan?plan=${plan.stripe_price_id}`}
+                          className={`w-full inline-block text-center py-3 rounded-full transition ${
+                            plan.is_popular
+                              ? 'bg-white text-[#0066FF] hover:bg-gray-50'
+                              : 'border border-[#0066FF] text-[#0066FF] hover:bg-[#0066FF]/5'
+                          }`}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        15 prompts por mês(com possibilidade de adquirir mais prompts)
-                      </li>
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-white mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        IA intermediária
-                      </li>
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        7 dias de teste grátis
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="mt-auto pt-8">
-                    <button className="w-full py-3 bg-white text-[#0066FF] rounded-full hover:bg-gray-50 transition">
-                      Começar Starter
-                    </button>
-                  </div>
-                </div>
-
-                {/* Pro Plan */}
-                <div className="border rounded-xl p-8 flex flex-col">
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">Pro</h3>
-                    <p className="text-3xl font-bold mb-6">
-                      R$89
-                      <span className="text-lg font-normal text-gray-600">/mês</span>
-                    </p>
-                    <div className="text-sm mb-4 text-gray-600">
-                      R$890/ano (2 meses grátis)
+                          {plan.price === 0 ? 'Começar Grátis' : `Começar ${plan.name}`}
+                        </Link>
+                      </div>
                     </div>
-                    <ul className="space-y-4">
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        Posts ilimitados
-                      </li>
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        IA prioritária
-                      </li>
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        Refine prompt
-                      </li>
-                      <li className="flex items-center">
-                        <svg
-                          className="w-5 h-5 text-green-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        7 dias de teste grátis
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="mt-auto pt-8">
-                    <button className="w-full py-3 border border-[#0066FF] text-[#0066FF] rounded-full hover:bg-[#0066FF]/5 transition">
-                      Começar Pro
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </section>
         )}

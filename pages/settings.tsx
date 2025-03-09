@@ -10,8 +10,11 @@ export default function Settings() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [subscription, setSubscription] = useState<{
-    plan: "free" | "pro" | "enterprise";
+    plan: "free" | "starter" | "pro";
+    plan_name?: string;
     status: "active" | "canceled" | "past_due";
     currentPeriodEnd?: string;
   }>({ plan: "free", status: "active" });
@@ -20,28 +23,47 @@ export default function Settings() {
   // Get user data and subscription on mount
   useEffect(() => {
     const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/signin");
-        return;
-      }
-      setUser(user);
+      try {
+        setLoading(true);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          router.push("/signin");
+          return;
+        }
+        setUser(user);
 
-      // Fetch subscription data
-      const { data: sub, error } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
+        // Fetch subscription data
+        const { data: sub, error } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
 
-      if (!error && sub) {
-        setSubscription({
-          plan: sub.plan,
-          status: sub.status,
-          currentPeriodEnd: sub.current_period_end,
-        });
+        if (!error && sub) {
+          setSubscription({
+            plan: sub.plan,
+            plan_name: sub.plan_name,
+            status: sub.status,
+            currentPeriodEnd: sub.current_period_end,
+          });
+
+          // Fetch current plan features
+          const { data: planData } = await supabase
+            .from("plans")
+            .select("*")
+            .eq("name", sub.plan_name || sub.plan)
+            .single();
+
+          if (planData) {
+            setCurrentPlan(planData);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
       }
     };
     getUser();
@@ -99,7 +121,49 @@ export default function Settings() {
 
   // Add subscription management functions
   const handleUpgrade = () => {
-    router.push("/pricing"); // Create this page for subscription upgrades
+    router.push("/pricing");
+  };
+
+  const handleCancelPlan = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Sessão expirada. Por favor, faça login novamente.');
+      }
+
+      console.log('Making request to create portal session...'); // Debug log
+
+      const response = await fetch('/api/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: session.user.id }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Error response:', text);
+        try {
+          const errorData = JSON.parse(text);
+          throw new Error(errorData.error || 'Failed to create portal session');
+        } catch (e) {
+          throw new Error('Failed to create portal session');
+        }
+      }
+
+      const data = await response.json();
+      if (!data.url) {
+        throw new Error('No portal URL received');
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error redirecting to customer portal:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao acessar o portal. Tente novamente.');
+    }
   };
 
   return (
@@ -129,134 +193,92 @@ export default function Settings() {
           {/* Subscription Section */}
           <section className="bg-white rounded-xl p-6 shadow-sm mb-8">
             <h2 className="text-xl font-medium mb-4">Assinatura</h2>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Plano Atual
-                  </h3>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-sm text-gray-500 capitalize">
-                      {subscription.plan === "free" ? "Gratuito" : 
-                       subscription.plan === "pro" ? "Pro" : 
-                       "Empresarial"}
-                    </span>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        subscription.status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {subscription.status === "active" ? "Ativo" :
-                       subscription.status === "canceled" ? "Cancelado" :
-                       "Pagamento Pendente"}
-                    </span>
+            {loading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Plano Atual
+                    </h3>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-sm text-gray-500 capitalize">
+                        {subscription.plan_name || (subscription.plan === "free" ? "Gratuito" : 
+                         subscription.plan === "starter" ? "Starter" : 
+                         "Pro")}
+                      </span>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          subscription.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {subscription.status === "active" ? "Ativo" :
+                         subscription.status === "canceled" ? "Cancelado" :
+                         "Pagamento Pendente"}
+                      </span>
+                    </div>
+                    {subscription.currentPeriodEnd && (
+                      <p className="mt-1 text-sm text-gray-500">
+                        Próxima cobrança:{" "}
+                        {new Date(
+                          subscription.currentPeriodEnd
+                        ).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
-                  {subscription.currentPeriodEnd && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      Próxima cobrança:{" "}
-                      {new Date(
-                        subscription.currentPeriodEnd
-                      ).toLocaleDateString()}
-                    </p>
+                  {!loading && subscription.plan !== "pro" && (
+                    <button
+                      onClick={handleUpgrade}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      {subscription.plan === "free" ? "Assinar Agora" : "Atualizar para Pro"}
+                    </button>
                   )}
                 </div>
-                {subscription.plan !== "enterprise" && (
-                  <button
-                    onClick={handleUpgrade}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Atualizar Plano
-                  </button>
+
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                    Recursos do Plano
+                  </h4>
+                  <ul className="space-y-2">
+                    {currentPlan?.description.split(',').map((feature: string, index: number) => (
+                      <li key={index} className="text-sm text-gray-500 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-green-500"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        {feature.trim()}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {!loading && subscription.plan !== "free" && subscription.status === "active" && (
+                  <div className="flex justify-end border-t pt-4">
+                    <button
+                      onClick={handleCancelPlan}
+                      className="text-sm font-medium text-red-600 hover:text-red-700 focus:outline-none transition-colors"
+                    >
+                      Cancelar plano
+                    </button>
+                  </div>
                 )}
               </div>
-
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">
-                  Recursos do Plano
-                </h4>
-                <ul className="space-y-2">
-                  {subscription.plan === "free" ? (
-                    <>
-                      <li className="text-sm text-gray-500 flex items-center gap-2">
-                        <svg
-                          className="w-4 h-4 text-green-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        Até 5 conteúdos por mês
-                      </li>
-                      <li className="text-sm text-gray-500 flex items-center gap-2">
-                        <svg
-                          className="w-4 h-4 text-green-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        Análise básica de conteúdo
-                      </li>
-                    </>
-                  ) : (
-                    <>
-                      <li className="text-sm text-gray-500 flex items-center gap-2">
-                        <svg
-                          className="w-4 h-4 text-green-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        Conteúdos ilimitados
-                      </li>
-                      <li className="text-sm text-gray-500 flex items-center gap-2">
-                        <svg
-                          className="w-4 h-4 text-green-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        Análise avançada de conteúdo
-                      </li>
-                      <li className="text-sm text-gray-500 flex items-center gap-2">
-                        <svg
-                          className="w-4 h-4 text-green-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        Suporte prioritário
-                      </li>
-                    </>
-                  )}
-                </ul>
-              </div>
-            </div>
+            )}
           </section>
 
           {/* Danger Zone */}
