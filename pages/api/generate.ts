@@ -33,61 +33,36 @@ const openai = new OpenAI({
 // Create a function to get Supabase admin client
 const getSupabaseAdmin = () => {
   try {
-    // Log environment variables (safely)
-    console.error('Environment check:', {
-      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      urlLength: process.env.NEXT_PUBLIC_SUPABASE_URL?.length,
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      serviceKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length,
-    });
-
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error(`Missing Supabase configuration - URL: ${!!supabaseUrl}, Key: ${!!supabaseServiceKey}`);
+      throw new Error('Missing required Supabase configuration');
     }
 
-    // Create client with explicit configuration
-    const client = createClient(supabaseUrl, supabaseServiceKey, {
+    // Create client with specific configuration for Edge runtime
+    return createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
         detectSessionInUrl: false
-      },
-      global: {
-        headers: {
-          'X-Client-Info': 'edge-function'
-        }
       }
     });
-
-    return client;
   } catch (error: any) {
-    console.error('Error creating Supabase client:', error);
-    throw new Error(`Failed to create Supabase client: ${error.message}`);
+    console.error('Error in getSupabaseAdmin:', {
+      message: error.message,
+      supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    });
+    throw new Error(`Failed to initialize Supabase client: ${error.message}`);
   }
 };
 
 // Add function to get model configuration
 const getModelConfiguration = async () => {
   try {
-    console.error('Starting model configuration fetch...');
     const supabaseAdmin = getSupabaseAdmin();
-    console.error('Supabase client created successfully');
     
-    // Test the connection first
-    const { error: testError } = await supabaseAdmin
-      .from('models')
-      .select('count')
-      .limit(1);
-
-    if (testError) {
-      console.error('Connection test failed:', testError);
-      throw new Error(`Database connection test failed: ${testError.message}`);
-    }
-    console.error('Connection test successful');
-
     // Fetch the active model configuration
     const { data, error } = await supabaseAdmin
       .from('models')
@@ -95,40 +70,24 @@ const getModelConfiguration = async () => {
       .eq('active', true)
       .single();
 
-    console.error('Model configuration query result:', {
-      hasData: !!data,
-      hasError: !!error,
-      errorMessage: error?.message,
-      modelData: data ? { name: data.name, hasAgent: !!data.agent } : null
-    });
-
     if (error) {
-      throw new Error(`Failed to fetch model configuration: ${error.message}`);
+      throw error;
     }
 
     if (!data || !data.agent) {
-      throw new Error('No active model configuration found in database');
+      throw new Error('No active model configuration found');
     }
 
     // Parse the agent string into a JSON object
     const agentConfig = typeof data.agent === 'string' ? JSON.parse(data.agent) : data.agent;
-
-    if (!agentConfig.type || !agentConfig.settings) {
-      throw new Error('Invalid model configuration format: missing required fields');
-    }
 
     return {
       model: agentConfig.type,
       ...agentConfig.settings
     };
   } catch (error: any) {
-    console.error('Detailed error in getModelConfiguration:', {
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-      details: error.details
-    });
-    throw error;
+    console.error('Error in getModelConfiguration:', error);
+    throw new Error(`Failed to fetch model configuration: ${error.message}`);
   }
 };
 
