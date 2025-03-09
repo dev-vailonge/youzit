@@ -188,9 +188,9 @@ export default function Platforms() {
       // Store the results in session storage with the correct structure
       const contentResult = {
         platform: selectedPlatform,
-        content: responseData.script_result,
+        content: responseData.result,
         viral_score: responseData.viral_score,
-        content_analysis: responseData.content_analysis?.[selectedPlatform.toLowerCase()] || []
+        content_analysis: responseData.content_analysis || []
       };
 
       // Store in session storage

@@ -114,15 +114,14 @@ export default function Content() {
   }, [chatMessages]);
 
   useEffect(() => {
-    const init = async () => {
+    const initializeContent = async () => {
       if (!router.isReady) return;
 
       try {
+        setLoading(true);
+
         // Check user authentication
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session) {
           console.error("Session error:", sessionError);
@@ -131,10 +130,7 @@ export default function Content() {
           return;
         }
 
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (userError || !user) {
           console.error("User error:", userError);
@@ -154,27 +150,42 @@ export default function Content() {
           return;
         }
 
-        // Fetch the content from Supabase
-        const { data: contentData, error: contentError } = await supabase
-          .from("prompts")
-          .select("*")
-          .eq("id", contentId)
-          .single();
+        // Fetch content and check board status in parallel
+        const [contentResponse, boardResponse] = await Promise.all([
+          // Fetch content
+          supabase
+            .from("user_prompts")
+            .select("*")
+            .eq("id", contentId)
+            .single(),
+          
+          // Check if content exists in board
+          supabase
+            .from("content_board")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("prompt_id", contentId)
+            .eq("hidden", false)
+            .single()
+        ]);
 
-        if (contentError) {
-          console.error("Error fetching content:", contentError);
+        if (contentResponse.error) {
+          console.error("Error fetching content:", contentResponse.error);
           toast.error("Erro ao carregar conteúdo");
           return;
         }
 
-        if (!contentData) {
+        if (!contentResponse.data) {
           console.error("No content found for ID:", contentId);
           toast.error("Conteúdo não encontrado");
           return;
         }
 
-        // Set the content data
-        setContent(contentData);
+        // Set content data
+        setContent(contentResponse.data);
+
+        // Set board status
+        setIsInBoard(!!boardResponse.data);
 
         // Get stored results from sessionStorage if they exist
         const storedResults = sessionStorage.getItem("contentResults");
@@ -183,137 +194,26 @@ export default function Content() {
           setContentResults(parsedResults);
         }
 
-        setLoading(false);
+        // Check for context in session storage
+        const storedContext = sessionStorage.getItem("promptContext");
+        if (storedContext) {
+          setContextPrompt(JSON.parse(storedContext));
+          // Clear it after reading
+          sessionStorage.removeItem("promptContext");
+        }
+
       } catch (error) {
-        console.error("Error in init:", error);
+        console.error("Error in initialization:", error);
         toast.error("Erro ao carregar dados");
         router.push("/signin");
       } finally {
+        setLoading(false);
         setInitializing(false);
       }
     };
 
-    init();
+    initializeContent();
   }, [router.isReady, router.query.id]);
-
-  const fetchContent = async () => {
-    try {
-      const id = router.query.id as string;
-      const source = router.query.source;
-
-      if (!id) {
-        console.error("No content ID provided");
-        toast.error("ID do conteúdo não fornecido");
-        setLoading(false);
-        return;
-      }
-
-      // First check session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error("Session error:", sessionError);
-        toast.error("Por favor, faça login para continuar");
-        router.push("/signin");
-        return;
-      }
-
-      // Fetch from prompts
-      const { data, error } = await supabase
-        .from("prompts")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) {
-        console.error("Error fetching prompt:", error);
-        if (error.code === "PGRST116") {
-          toast.error("Conteúdo não encontrado");
-        } else {
-          toast.error("Erro ao carregar conteúdo");
-        }
-        throw error;
-      }
-
-      if (!data) {
-        console.error("No content found for ID:", id);
-        toast.error("Conteúdo não encontrado");
-        setLoading(false);
-        return;
-      }
-
-      setContent(data);
-      
-      // Get stored results
-      const storedResults = sessionStorage.getItem("contentResults");
-      if (storedResults) {
-        const parsedResults = JSON.parse(storedResults);
-        setContentResults(parsedResults);
-      }
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Error in fetchContent:", error);
-      toast.error("Erro ao carregar conteúdo");
-      setLoading(false);
-      router.push("/prompt");
-    }
-  };
-
-  useEffect(() => {
-    if (router.isReady) {
-      fetchContent();
-    }
-  }, [router.isReady, router.query]);
-
-  useEffect(() => {
-    const checkBoardStatus = async () => {
-      try {
-        const id = router.query.id as string;
-        const source = router.query.source;
-
-        if (!user || !id) return;
-
-        if (source === "board") {
-          // If coming from board, it's already in the board
-          setIsInBoard(true);
-          return;
-        }
-
-        // Check if content exists in board
-        const { data, error } = await supabase
-          .from("content_board")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("prompt_id", content?.id)
-          .eq("script_result", content?.script_result)
-          .eq("platform", content?.platform)
-          .eq("hidden", false)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          console.error("Error checking board status:", error);
-          return;
-        }
-
-        setIsInBoard(!!data);
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    };
-
-    checkBoardStatus();
-  }, [user, content, router.query.id, router.query.source]);
-
-  useEffect(() => {
-    // Check for context in session storage
-    const storedContext = sessionStorage.getItem("promptContext");
-    if (storedContext) {
-      setContextPrompt(JSON.parse(storedContext));
-      // Clear it after reading
-      sessionStorage.removeItem("promptContext");
-    }
-  }, []);
 
   const togglePlatform = (platformId: string) => {
     setSelectedPlatforms((prev) =>
@@ -347,7 +247,7 @@ export default function Content() {
 
       // First check for duplicate prompt
       const { data: existingPrompts, error: fetchError } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .select("*")
         .eq("user_id", user.id)
         .eq("prompt_text", prompt)
@@ -580,7 +480,7 @@ export default function Content() {
 
       // Update Supabase directly with properly formatted data
       const { error: updateError } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .update({
           script_result: trimmedContent,
           content_analysis: data.contentAnalysis.map((item: { title: string; description: string; score: number }) => ({
@@ -657,7 +557,7 @@ export default function Content() {
 
       // Update Supabase
       const { error } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .update({ script_result: editedContent })
         .eq("id", router.query.id);
 

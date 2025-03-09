@@ -116,7 +116,7 @@ export default function ContentBoard() {
         .select(
           `
           *,
-          prompt:prompts (
+          prompt:user_prompts (
             id,
             prompt_text,
             script_result,

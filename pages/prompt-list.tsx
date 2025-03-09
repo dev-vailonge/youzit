@@ -72,16 +72,29 @@ export default function PromptList() {
   const fetchPrompts = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('prompts')
+        .from('user_prompts')
         .select('*')
         .eq('user_id', userId)
         .eq('hidden', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPrompts(data || []);
-    } catch {
-      // Silent fail - prompts fetch error
+
+      // Transform the data to match the GroupedPrompt interface
+      const transformedData = data?.map(prompt => ({
+        id: prompt.id,
+        prompt_text: prompt.prompt_text,
+        created_at: prompt.created_at,
+        platforms: [{
+          id: prompt.platform.toLowerCase(),
+          name: prompt.platform
+        }],
+        content_board: prompt.content_board || []
+      })) || [];
+
+      setPrompts(transformedData);
+    } catch (error) {
+      console.error('Error fetching prompts:', error);
       setPrompts([]);
     } finally {
       setLoading(false);
@@ -110,7 +123,7 @@ export default function PromptList() {
       if (!user) throw new Error("Authentication required");
 
       const { error: updateError } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .update({ hidden: true })
         .eq("id", deletePromptId)
         .eq("user_id", user.id);
@@ -119,7 +132,7 @@ export default function PromptList() {
 
       // Refresh the list
       const { data: newData, error: fetchError } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .select("*")
         .eq("user_id", user.id)
         .eq("hidden", false)
@@ -127,22 +140,25 @@ export default function PromptList() {
 
       if (fetchError) throw fetchError;
 
-      // Update states
-      const totalCount = newData?.length || 0;
+      // Transform and update states
+      const transformedData = newData?.map(prompt => ({
+        id: prompt.id,
+        prompt_text: prompt.prompt_text,
+        created_at: prompt.created_at,
+        platforms: [{
+          id: prompt.platform.toLowerCase(),
+          name: prompt.platform
+        }],
+        content_board: prompt.content_board || []
+      })) || [];
+
+      const totalCount = transformedData.length;
       const newTotalPages = Math.ceil(totalCount / itemsPerPage);
       const newCurrentPage = Math.min(currentPage, Math.max(newTotalPages, 1));
       const start = (newCurrentPage - 1) * itemsPerPage;
       const end = start + itemsPerPage;
 
-      setPrompts(
-        newData.slice(start, end).map((prompt: any) => ({
-          id: prompt.id,
-          prompt_text: prompt.prompt_text,
-          platforms: prompt.platforms,
-          created_at: prompt.created_at,
-          content_board: prompt.content_board || [],
-        }))
-      );
+      setPrompts(transformedData.slice(start, end));
       setCurrentPage(newCurrentPage);
       setTotalPages(newTotalPages);
       setDeletePromptId(null);
@@ -166,9 +182,9 @@ export default function PromptList() {
 
   const handlePromptClick = async (prompt: GroupedPrompt) => {
     try {
-      // Fetch directly from prompts table
+      // Fetch directly from user_prompts table
       const { data: promptData, error } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .select("*")
         .eq("id", prompt.id)
         .eq("hidden", false);
@@ -182,8 +198,8 @@ export default function PromptList() {
           promptData?.map((p) => ({
             platform: p.platform,
             content: p.script_result,
-            viralScore: p.viral_score || 0,
-            contentAnalysis: p.content_analysis || [],
+            viral_score: p.viral_score || 0,
+            content_analysis: p.content_analysis || [],
           })) || []
         )
       );
@@ -290,8 +306,32 @@ export default function PromptList() {
                         ))}
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {formatDate(prompt.created_at)}
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-gray-500">
+                        {formatDate(prompt.created_at)}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click
+                          handleDelete(prompt.id);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        title="Excluir prompt"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -103,153 +103,145 @@ interface GenerateRequest {
   };
 }
 
-// Add a helper function to get platform format
-const getPlatformFormat = async (platform: string) => {
+// Add these interfaces at the top of the file with other interfaces
+interface ContentAnalysisItem {
+  title: string;
+  score: number;
+  description: string;
+}
+
+interface PlatformTemplate {
+  template: string;
+}
+
+interface Prompt {
+  text: string;
+}
+
+// Add function to get prompt
+const getPrompt = async (): Promise<Prompt> => {
   try {
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error } = await supabaseAdmin
-      .from('model_prompts')
-      .select('prompt')
-      .eq('platform', platform.toLowerCase())
+      .from('prompt')
+      .select('text')
       .single();
 
     if (error) {
-      console.error('Error fetching platform format:', error);
-      return '';
+      console.error('Error fetching prompt:', error);
+      throw error;
     }
 
-    return data?.prompt || '';
+    if (!data) {
+      throw new Error(`No prompt found`);
+    }
+
+    return {
+      text: data.text
+    };
   } catch (error) {
-    console.error('Error in getPlatformFormat:', error);
-    return '';
+    console.error('Error in getPrompt:', error);
+    throw error;
   }
 };
-
-const cleanScriptResult = (result: string): string => {
-  // Make the start marker optional and capture the content up to the end marker
-  const fullContent = result.match(/(?:##\s*script results start\s*##\s*)?([\s\S]*?)\s*##\s*script results ends\s*##/i);
-  
-  if (!fullContent || !fullContent[1]) {
-    return ''; // Return empty string if valid content isn't found
-  }
-
-  let content = fullContent[1].trim();
-  // Remove all asterisks from the content
-  content = content.replace(/\*/g, '');
-  
-  return content;
-};
-
-
-const generatePrompt = (
-  prompt: string,
-  platform: string
-) => `Create engaging content for ${platform} about: ${prompt}
-
-Please structure your response in the following format:
-
-For ${platform}:
-
-Content Analysis:
-- Engagement Potential (Score: X/10): [Description of engagement potential]
-- Target Audience Appeal (Score: X/10): [Description of target audience appeal]
-- Hook Effectiveness (Score: X/10): [Description of hook effectiveness]
-- Call-to-Action Strength (Score: X/10): [Description of call-to-action strength]
-- SEO/Discoverability (Score: X/10): [Description of SEO potential]
-- Emotional Impact (Score: X/10): [Description of emotional impact]
-- Shareability Factors (Score: X/10): [Description of shareability]
-
-Viral Score: [Calculate average of all scores multiplied by 10]
-
-[Hook- 5-10 seconds]
-[Attention-grabbing opening]
-
-[Introduction - 15-30 seconds]
-[Brief overview and context]
-
-[Main Content - 3-7 minutes]
-[Detailed content broken into sections]
-
-[Engagement Prompt]
-[Question or call to action to encourage engagement]
-
-[Final Takeaways - 30-60 seconds]
-[Summary and key points]
-
-[Call to Action - 10 seconds]
-[Clear call to action for viewers]`;
 
 const buildMessages = (
-  prompt: string,
+  prompt: Prompt,
+  userPrompt: string,
   platform: string,
-  format: string,
-  contextPrompt?: any
 ): ChatCompletionMessageParam[] => {
+  // Replace placeholders in the prompt template
+  let promptText = prompt.text
+    .replace('<<<INSER_USER_PROMPT>>>', userPrompt)
+    .replace('<<<INSERT_PLATFORM>>>', platform);
+
+  // Function to remove all platform templates except for the desired one
+    const cleanPromptForPlatform = (text: string, desiredPlatform: string): string => {
+    const platformUpper = desiredPlatform.toUpperCase();
+    // This regex matches any platform block that does not belong to the desired platform.
+    const regex = new RegExp(`<<<(?!${platformUpper}>>>)[^>]+>>>([\\s\\S]*?)<<<END_[^>]+>>>\\n?`, "gi");
+    const cleanedText = text.replace(regex, "");
+    console.log('cleanedText', cleanedText);
+    return cleanedText;
+  };
+
+  // Clean the prompt text to only include the desired platform's block
+  const cleanPromptWithPlatformSpecificFormat = cleanPromptForPlatform(promptText, platform);
+
   return [
     {
       role: "system",
-      content: `You are an expert content creator specializing in Portuguese content creation.
-
-CRITICAL INSTRUCTIONS:
-1. ALL content MUST be in Portuguese, including section titles, analysis, and scores
-2. NEVER use English words or terms
-3. Always translate any English content to Portuguese
-4. Follow the exact format specified below
-5. Every post must include:
-   - A strong **Hook** to grab attention  
-   - An engaging **Introduction** to build context  
-   - A well-structured **Main Content** section with actionable insights  
-   - A powerful **Engagement Prompt** to increase interaction  
-   - A **Final Takeaway** summarizing key points  
-   - A **Call to Action (CTA)** to drive specific audience actions`
+      content:
+        "You are an expert content creator skilled at creating viral content. Your responses must follow the exact format specified.",
     },
     {
       role: "user",
-      content: `Create content about "${prompt}" for ${platform}.
-Platform format: ${format}
-Context: ${contextPrompt ? JSON.stringify(contextPrompt) : 'None'}`
-    }
+      content: cleanPromptWithPlatformSpecificFormat,
+    },
   ];
 };
-
-const extractContentAnalysis = (result: string) => {
+const cleanupResponse = (response: string, platform: string): string => {
   try {
-    const analysisRegex = /## content analyses start ##([\s\S]*?)## content analyses ends ##/i;
-    const analysisMatch = result.match(analysisRegex);
-
-    if (!analysisMatch) return [];
-
-    const analysisContent = analysisMatch[1].trim();
-    const itemRegex = /-\s*([\wÀ-ÿ\s/-]+)\s*\((?:Score|Pontuação):\s*(\d+)\/10\):\s*([^\n]+)/g;
-    const analyses = [];
-    let match;
-
-    while ((match = itemRegex.exec(analysisContent))) {
-      const [, title, score, description] = match;
-      analyses.push({
-        title: title.trim(),
-        score: parseInt(score, 10),
-        description: description.trim(),
-      });
+    // Extract content analysis
+    const contentAnalysisMatch = response.match(/<<BEGIN_CONTENT_ANALYSIS>>([\s\S]*?)<<END_CONTENT_ANALYSIS>>/);
+    const contentAnalysisText = contentAnalysisMatch ? contentAnalysisMatch[1].trim() : '';
+    
+    // Parse content analysis items
+    const analysisItems = contentAnalysisText.split('\n').map(line => {
+      const [title, score, description] = line.split('|').map(part => part.trim());
+      if (title && score && description) {
+        return {
+          title,
+          score: parseInt(score, 10),
+          description
+        };
+      }
+      return null;
+    }).filter(item => item !== null);
+    
+    // Extract viral score
+    const viralScoreMatch = response.match(/<<BEGIN_VIRAL_SCORE>>\s*(\d+)\s*<<END_VIRAL_SCORE>>/);
+    const viralScore = viralScoreMatch ? parseInt(viralScoreMatch[1], 10) : 0;
+    
+    // Extract raw content: everything after the viral score block
+    const endViralIndex = response.indexOf("<<END_VIRAL_SCORE>>");
+    const rawContent = endViralIndex !== -1 ? response.slice(endViralIndex + "<<END_VIRAL_SCORE>>".length).trim() : '';
+    
+    // Clean the content by removing static markers
+    let cleanedContent = rawContent
+      .replace(/<<BEGIN_CONTENT>>/g, '')
+      .replace(/<<END_CONTENT>>/g, '')
+      .trim();
+    
+    // Dynamically remove platform-specific markers (e.g., <<<YOUTUBE>>>) based on the provided platform parameter.
+    if (platform) {
+      const platformUpper = platform.toUpperCase();
+      const platformRegex = new RegExp(`<<<${platformUpper}>>>`, 'g');
+      cleanedContent = cleanedContent.replace(platformRegex, '');
     }
-
-    return analyses;
+    
+    // Optionally remove markers for other known platforms if desired.
+    // For example:
+    // cleanedContent = cleanedContent.replace(/<<<LINKEDIN>>>/g, '').replace(/<<<INSTAGRAM>>>/g, '');
+    
+    // Compress any occurrence of three or more consecutive newlines into exactly two newlines.
+    cleanedContent = cleanedContent.replace(/(\r?\n){3,}/g, "\n\n")
+                                   .split("\n")
+                                   .map(line => line.trim())
+                                   .join("\n");
+    
+    // Structure the cleaned response as a JSON string
+    return JSON.stringify({
+      content: cleanedContent,
+      content_analysis: analysisItems,
+      viral_score: viralScore
+    });
   } catch (error) {
-    console.error('Error extracting content analysis:', error);
-    return [];
+    console.error('Error cleaning up response:', error);
+    throw error;
   }
 };
 
-const calculateViralScore = (result: string): number => {
-  try {
-    const viralScoreRegex = /## viral score start ##\s*Pontuação Viral:\s*(\d+)\s*## viral score ends ##/i;
-    const match = result.match(viralScoreRegex);
-    return match ? parseInt(match[1], 10) : 0;
-  } catch (error) {
-    console.error('Error calculating viral score:', error);
-    return 0;
-  }
-};
 
 export default async function handler(
   req: NextRequest
@@ -301,18 +293,28 @@ export default async function handler(
       );
     }
 
-    // Get model configuration
     const modelConfig = await getModelConfiguration();
     
     // Generate content for each platform
     const results = await Promise.all(
       requestData.platforms.map(async (platform: string) => {
-        const format = await getPlatformFormat(platform);
-        const messages = buildMessages(requestData.prompt, platform, format, requestData.contextPrompt);
+        const prompt = await getPrompt();
         
+        const messages =  buildMessages(prompt, requestData.prompt, platform);
+        
+        console.error('Sending request to OpenAI for platform:', platform);
         const completion = await openai.chat.completions.create({
           ...modelConfig,
           messages,
+          temperature: 0.7,
+        });
+
+        console.error('Raw OpenAI response:', {
+          platform,
+          model: completion.model,
+          content: completion.choices[0]?.message?.content,
+          finishReason: completion.choices[0]?.finish_reason,
+          usage: completion.usage,
         });
 
         return {
@@ -323,39 +325,48 @@ export default async function handler(
     );
 
     // Process results and save to database
-    const processedResults = results.map(({ platform, result }) => ({
-      platform,
-      script_result: cleanScriptResult(result),
-      content_analysis: extractContentAnalysis(result),
-      viral_score: calculateViralScore(result),
+    const processedResults = await Promise.all(results.map(async ({ platform, result }) => {
+      console.error(`\nProcessing results for platform: ${platform}`);
+      
+      try {
+        const cleanedResponse = cleanupResponse(result, platform);
+        const parsedResponse = JSON.parse(cleanedResponse);
+  
+        console.log('parsedResponse', parsedResponse)
+
+        // Save to user_prompts table
+        const supabaseAdmin = getSupabaseAdmin();
+        const { data, error } = await supabaseAdmin
+          .from('user_prompts')
+              .insert({
+            user_id: requestData.userId,
+            prompt_text: requestData.prompt,
+            platform,
+            script_result: parsedResponse.content,
+            viral_score: parsedResponse.viral_score,
+            content_analysis: parsedResponse.content_analysis,
+          })
+          .select()
+              .single();
+
+        if (error) throw error;
+
+        return {
+          id: data.id,
+          platform,
+          result: parsedResponse.content,
+          content_analysis: parsedResponse.content_analysis,
+          viral_score: parsedResponse.viral_score,
+        };
+          } catch (error) {
+        console.error('Error processing result:', error);
+            throw error;
+          }
     }));
 
-    // Save to database
-    const supabaseAdmin = getSupabaseAdmin();
-    const { data, error } = await supabaseAdmin
-      .from('prompts')
-      .insert({
-        user_id: requestData.userId,
-        prompt_text: requestData.prompt,
-        script_result: processedResults[0].script_result,
-        viral_score: processedResults[0].viral_score,
-        content_analysis: processedResults[0].content_analysis,
-        platform: requestData.platforms[0],
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
+    // Return the first result's ID for navigation
     return new Response(
-      JSON.stringify({
-        id: data.id,
-        script_result: processedResults[0].script_result,
-        viral_score: processedResults[0].viral_score,
-        content_analysis: processedResults[0].content_analysis,
-      }),
+      JSON.stringify(processedResults[0]),
       { 
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -364,17 +375,13 @@ export default async function handler(
 
   } catch (error: any) {
     console.error('Error in generate API:', error);
-    
     return new Response(
       JSON.stringify({
         error: "INTERNAL_SERVER_ERROR",
         message: error.message || "An error occurred while generating content",
         details: error.stack
       }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }

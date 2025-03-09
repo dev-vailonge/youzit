@@ -63,9 +63,9 @@ export default function Dashboard() {
       }
 
       try {
-        // Get prompt count - only count distinct prompts that aren't hidden
+        // Get prompt count from user_prompts table
         const { count: promptCount, error: promptError } = await supabase
-          .from("prompts")
+          .from("user_prompts")
           .select("prompt_text", { count: "exact", head: true })
           .eq("user_id", session.user.id)
           .eq("hidden", false);
@@ -96,9 +96,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchPrompts = async () => {
       try {
-        // Get total count of non-hidden prompts
+        // Get total count of non-hidden prompts from user_prompts table
         const { count } = await supabase
-          .from("prompts")
+          .from("user_prompts")
           .select("*", { count: "exact", head: true })
           .eq("hidden", false);
 
@@ -111,9 +111,9 @@ export default function Dashboard() {
           return; // The page change will trigger another fetch
         }
 
-        // Get paginated data
+        // Get paginated data from user_prompts table
         const { data, error } = await supabase
-          .from("prompts")
+          .from("user_prompts")
           .select("*")
           .eq("hidden", false)
           .order("created_at", { ascending: false })
@@ -174,9 +174,9 @@ export default function Dashboard() {
       console.log("Attempting to update prompt:", deletePromptId);
       console.log("Current user:", user.id);
 
-      // Simple update
+      // Simple update in user_prompts table
       const { error: updateError } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .update({ hidden: true })
         .eq("id", deletePromptId)
         .eq("user_id", user.id)
@@ -188,9 +188,9 @@ export default function Dashboard() {
         throw new Error("Failed to delete prompt. Please try again.");
       }
 
-      // Refresh the list immediately
+      // Refresh the list immediately from user_prompts table
       const { data: newData, error: fetchError } = await supabase
-        .from("prompts")
+        .from("user_prompts")
         .select("*")
         .eq("hidden", false)
         .eq("user_id", user.id)
