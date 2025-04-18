@@ -24,33 +24,24 @@ export default function Dashboard() {
       }
 
       try {
-        console.log('🔍 Initializing dashboard with subscription_id:', subscription_id);
         setLoading(true);
         initializedRef.current = true;
 
         // Get authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
-          console.log('❌ No authenticated user found');
           router.push('/signin');
           return;
         }
 
         // Only fetch subscription status if we have a subscription_id
         if (subscription_id) {
-          console.log('📡 Fetching subscription status for ID:', subscription_id);
           const response = await fetch(`/api/subscriptions/get-current?subscription_id=${subscription_id}`);
-          console.log('📡 Subscription status response:', response.status);
           if (!response.ok) {
-            console.error('Error checking subscription status:', await response.text());
-          } else {
-            const data = await response.json();
-            console.log('✅ Successfully checked subscription status:', data);
+            throw new Error(await response.text());
           }
           // Remove the subscription_id from URL
           router.replace('/dashboard', undefined, { shallow: true });
-        } else {
-          console.log('ℹ️ No subscription_id in URL, skipping subscription check');
         }
 
         // Continue with existing checks
@@ -72,9 +63,9 @@ export default function Dashboard() {
             });
 
           if (trialError) {
-            console.error('Error creating trial access:', trialError);
+            throw new Error('Error creating trial access');
           }
-        } else if (accessData.accessType === 'expired') {
+        } else if (accessData.access_type === 'expired' || accessData.status === 'expired') {
           router.push('/pricing');
           return;
         }
@@ -94,7 +85,7 @@ export default function Dashboard() {
         setPromptCount(promptsResponse.count || 0);
         setContentCount(contentResponse.count || 0);
       } catch (error) {
-        console.error('Error initializing dashboard:', error);
+        // Silent fail - errors will be handled by the UI state
       } finally {
         setLoading(false);
       }
