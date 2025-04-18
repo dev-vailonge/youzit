@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -51,8 +51,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           planId: plan.id,
         },
       },
-      success_url: `${APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${APP_URL}/pricing`,
+      success_url: `${SITE_URL}/dashboard`,
+      cancel_url: `${SITE_URL}/pricing`,
     });
 
     return res.status(200).json({ sessionId: session.id });
