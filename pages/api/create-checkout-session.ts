@@ -28,15 +28,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (planError || !plan) {
-      console.error('Error fetching plan:', planError);
       return res.status(400).json({ message: 'Invalid plan' });
+    }
+
+    // Find or create customer
+    let customer;
+    const customers = await stripe.customers.list({
+      email: userEmail,
+      limit: 1
+    });
+
+    if (customers.data.length > 0) {
+      customer = customers.data[0];
+      // Update customer metadata if needed
+      if (!customer.metadata.user_id) {
+        customer = await stripe.customers.update(customer.id, {
+          metadata: { user_id: userId }
+        });
+      }
+    } else {
+      // Create new customer
+      customer = await stripe.customers.create({
+        email: userEmail,
+        metadata: { user_id: userId }
+      });
     }
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
       payment_method_types: ['card'],
       billing_address_collection: 'required',
-      customer_email: userEmail,
       line_items: [
         {
           price: priceId,
@@ -45,35 +67,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
       mode: 'subscription',
       allow_promotion_codes: true,
-      customer_creation: 'always',
-      customer_update: {
-        name: 'auto',
-        address: 'auto'
-      },
       subscription_data: {
         metadata: {
           planId: plan.id,
+          user_id: userId
         },
-      },
-      metadata: {
-        user_id: userId  // This will be copied to the customer metadata
       },
       success_url: `${SITE_URL}/dashboard?subscription_id={SUBSCRIPTION_ID}`,
       cancel_url: `${SITE_URL}/pricing`,
     });
 
-    console.log('Created checkout session:', {
-      sessionId: session.id,
-      customerEmail: userEmail,
-      userId: userId
-    });
-
     return res.status(200).json({ sessionId: session.id });
   } catch (error: any) {
-    console.error('Error creating checkout session:', error);
+    console.error('Error creating checkout session:', {
+      error: error.message,
+      stack: error.stack,
+      body: req.body
+    });
+    
     return res.status(500).json({ 
       message: 'Error creating checkout session',
-      error: error.message 
+      error: error.message,
+      type: error.type,
+      code: error.code
     });
   }
 } 
