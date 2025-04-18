@@ -45,14 +45,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
       mode: 'subscription',
       allow_promotion_codes: true,
+      customer_creation: 'always',
+      customer_update: {
+        name: 'auto',
+        address: 'auto'
+      },
       subscription_data: {
         metadata: {
-          userId,
           planId: plan.id,
         },
       },
+      metadata: {
+        user_id: userId  // This will be copied to the customer metadata
+      },
       success_url: `${SITE_URL}/dashboard?subscription_id={SUBSCRIPTION_ID}`,
       cancel_url: `${SITE_URL}/pricing`,
+    });
+
+    console.log('Created checkout session:', {
+      sessionId: session.id,
+      customerEmail: userEmail,
+      userId: userId
     });
 
     return res.status(200).json({ sessionId: session.id });
