@@ -80,7 +80,6 @@ export default function PromptList() {
 
       if (error) throw error;
 
-      // Transform the data to match the GroupedPrompt interface
       const transformedData = data?.map(prompt => ({
         id: prompt.id,
         prompt_text: prompt.prompt_text,
@@ -93,8 +92,7 @@ export default function PromptList() {
       })) || [];
 
       setPrompts(transformedData);
-    } catch (error) {
-      console.error('Error fetching prompts:', error);
+    } catch {
       setPrompts([]);
     } finally {
       setLoading(false);
@@ -130,7 +128,6 @@ export default function PromptList() {
 
       if (updateError) throw updateError;
 
-      // Refresh the list
       const { data: newData, error: fetchError } = await supabase
         .from("user_prompts")
         .select("*")
@@ -140,7 +137,6 @@ export default function PromptList() {
 
       if (fetchError) throw fetchError;
 
-      // Transform and update states
       const transformedData = newData?.map(prompt => ({
         id: prompt.id,
         prompt_text: prompt.prompt_text,
@@ -170,8 +166,7 @@ export default function PromptList() {
         setSuccessMessage("");
       }, 3000);
     } catch (error: any) {
-      console.error("Error deleting prompt:", error);
-      setErrorMessage(error.message || "Failed to delete prompt");
+      setErrorMessage("Failed to delete prompt");
       setShowError(true);
       setTimeout(() => {
         setShowError(false);
@@ -182,7 +177,6 @@ export default function PromptList() {
 
   const handlePromptClick = async (prompt: GroupedPrompt) => {
     try {
-      // Fetch directly from user_prompts table
       const { data: promptData, error } = await supabase
         .from("user_prompts")
         .select("*")
@@ -191,7 +185,6 @@ export default function PromptList() {
 
       if (error) throw error;
 
-      // Store in session storage
       sessionStorage.setItem(
         "contentResults",
         JSON.stringify(
@@ -205,10 +198,8 @@ export default function PromptList() {
       );
       sessionStorage.setItem("currentPrompt", prompt.prompt_text);
 
-      // Navigate to content page
       router.push(`/content?id=${prompt.id}&source=list`);
-    } catch (error) {
-      console.error("Error fetching prompt content:", error);
+    } catch {
       toast.error("Failed to load content");
     }
   };

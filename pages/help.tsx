@@ -37,10 +37,10 @@ export default function Help() {
                     />
                   </svg>
                   <a
-                    href="mailto:support@youzit.com"
+                    href="mailto:contato@youzit.com.br"
                     className="text-[#0066FF] hover:text-blue-700"
                   >
-                    support@youzit.com
+                    contato@youzit.com.br
                   </a>
                 </div>
                 <p className="text-sm text-gray-500">

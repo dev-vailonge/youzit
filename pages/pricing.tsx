@@ -13,6 +13,7 @@ export default function Pricing() {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [plansLoading, setPlansLoading] = useState(true);
   const [plans, setPlans] = useState<any[]>([]);
   const [subscription, setSubscription] = useState<{
     plan: "free" | "starter" | "pro";
@@ -55,32 +56,24 @@ export default function Pricing() {
 
   const fetchPlans = async () => {
     try {
-      setPageLoading(true);
-      const { data } = await supabase
+      setPlansLoading(true);
+      const { data, error } = await supabase
         .from('plans')
         .select('*')
         .order('price', { ascending: true });
 
-      if (data) {
-        // Find the current plan
-        const currentPlan = data.find(
-          plan => plan.name.toLowerCase() === subscription.plan.toLowerCase() ||
-                 plan.name === subscription.plan_name
-        );
-
-        if (currentPlan) {
-          // Filter to show only current plan and higher priced plans
-          const filteredPlans = data.filter(plan => plan.price >= currentPlan.price);
-          setPlans(filteredPlans);
-        } else {
-          // If no current plan (new user), show all plans
-          setPlans(data);
-        }
+      if (error) {
+        console.error('Error fetching plans:', error);
+        return;
       }
-    } catch {
-      // Silent fail - unable to fetch plans
+
+      if (data) {
+        setPlans(data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
     } finally {
-      setPageLoading(false);
+      setPlansLoading(false);
     }
   };
 
@@ -90,16 +83,11 @@ export default function Pricing() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const handleSelectPlan = async (planId: string | null, planType: string) => {
+  const handleSelectPlan = async (planId: string) => {
     setLoading(true);
     try {
       if (!user) {
-        router.push(`/signup-with-plan?plan=${planId}`);
-        return;
-      }
-
-      if (!planId) {
-        router.push('/dashboard');
+        router.push('/signin');
         return;
       }
 
@@ -109,20 +97,36 @@ export default function Pricing() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          plan: planId,
+          priceId: planId,
+          userId: user.id,
+          userEmail: user.email
         }),
       });
 
-      const { sessionId } = await response.json();
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Erro ao criar sessão de pagamento');
+      }
+
+      if (!data.sessionId) {
+        throw new Error('Sessão de pagamento não foi criada');
+      }
+
       const stripe = await stripePromise;
       
       if (!stripe) {
-        return;
+        throw new Error('Stripe não foi inicializado');
       }
 
-      await stripe.redirectToCheckout({ sessionId });
-    } catch {
-      // Silent fail - unable to process checkout
+      const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert(error.message || 'Ocorreu um erro ao processar o pagamento. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -152,95 +156,69 @@ export default function Pricing() {
         <title>YouZit - Planos e Preços</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <Header />
         
-        <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-8">
-              Planos e Preços
-            </h1>
-          </div>
+        <main className="container mx-auto px-4 py-20">
+          <h1 className="text-4xl font-bold text-center mb-16">
+            Planos e Preços
+          </h1>
 
-          <div className="flex justify-center items-center">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8 w-full max-w-6xl">
-              {plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className="relative rounded-2xl bg-white p-8 flex flex-col h-full"
-                >
-                  {(plan.name.toLowerCase() === subscription.plan.toLowerCase() || 
-                    plan.name === subscription.plan_name) && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-[#0066FF] text-white text-xs px-3 py-1 rounded-full font-medium">
-                        PLANO ATUAL
-                      </span>
-                    </div>
-                  )}
-
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {plan.name}
-                    </h2>
-                    <div className="mt-4">
-                      <span className="text-4xl font-bold text-gray-900">
-                        R${plan.price}
-                      </span>
-                      {plan.price > 0 && (
-                        <span className="text-gray-500">
-                          /mês
-                        </span>
-                      )}
-                    </div>
-                    {plan.yearly_price && (
-                      <p className="text-sm mt-2 text-gray-500">
-                        R$890/ano (2 meses grátis)
-                      </p>
-                    )}
-
-                    <ul className="space-y-4 mt-6">
-                      {plan.description.split(',').map((feature: string, index: number) => (
-                        <li key={index} className="flex items-start">
-                          <svg
-                            className="h-5 w-5 text-green-500 mt-0.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span className="ml-3 text-gray-600">
-                            {feature.trim()}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {!(plan.name.toLowerCase() === subscription.plan.toLowerCase() || 
-                     plan.name === subscription.plan_name) && (
-                    <div className="mt-auto pt-8">
-                      <Link
-                        href={plan.price === 0 
-                          ? '/signup'
-                          : `/signup-with-plan?plan=${plan.stripe_price_id}`}
-                        className="w-full inline-block text-center py-3 rounded-full transition border border-[#0066FF] text-[#0066FF] hover:bg-[#0066FF]/5"
-                      >
-                        {plan.price === 0 
-                          ? 'Começar Grátis' 
-                          : `Começar ${plan.name}`}
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              ))}
+          {plansLoading ? (
+            <div className="flex justify-center items-center min-h-[200px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[900px]">
+                {plans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className="bg-white rounded-lg p-8 border flex flex-col"
+                  >
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
+                      <div className="flex items-baseline mb-8">
+                        <span className="text-4xl font-bold">R${plan.price}</span>
+                        <span className="text-gray-600 ml-2">/mês</span>
+                      </div>
+                      
+                      <ul className="space-y-4 mb-8">
+                        {plan.description.split(',').map((feature: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <svg
+                              className="h-5 w-5 text-green-500 mt-1 mr-3 flex-shrink-0"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span className="text-gray-600">
+                              {feature.trim()}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button
+                      onClick={() => handleSelectPlan(plan.stripe_price_id)}
+                      disabled={loading}
+                      className="w-full text-center py-3 px-4 rounded-full border border-[#0066FF] text-[#0066FF] hover:bg-[#0066FF]/5 transition mt-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? 'Processando...' : `Começar ${plan.name}`}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </>

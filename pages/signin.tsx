@@ -85,12 +85,30 @@ export default function SignIn() {
           setMessage('Por favor, verifique seu email para confirmar sua conta antes de fazer login.');
           return;
         }
-        throw error;
+        
+        // Handle different error cases with friendly messages
+        switch (error.message) {
+          case 'Invalid login credentials':
+            setMessage('Email ou senha incorretos. Por favor, verifique suas credenciais.');
+            break;
+          case 'Invalid email':
+            setMessage('Por favor, insira um email válido.');
+            break;
+          case 'Password should be at least 6 characters':
+            setMessage('A senha deve ter pelo menos 6 caracteres.');
+            break;
+          case 'Rate limit exceeded':
+            setMessage('Muitas tentativas de login. Por favor, aguarde alguns minutos e tente novamente.');
+            break;
+          default:
+            setMessage('Ocorreu um erro ao fazer login. Por favor, tente novamente.');
+        }
+        return;
       }
 
       router.push("/dashboard");
-    } catch {
-      // Silent fail - sign in error
+    } catch (error) {
+      setMessage('Ocorreu um erro ao fazer login. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }

@@ -1,84 +1,157 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
 import { buffer } from 'micro';
+import Stripe from 'stripe';
+import { supabase } from '@/lib/supabase';
 
-// Initialize Stripe
+// Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: '2023-10-16' as Stripe.LatestApiVersion,
 });
 
-// Initialize Supabase with service role key for admin access
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// Disable body parsing (use raw body)
+// This is necessary to handle the raw body for Stripe webhooks
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+async function getAccessTypeFromPriceId(priceId: string): Promise<string> {
+  const { data: plan, error } = await supabase
+    .from('plans')
+    .select('access_type')
+    .eq('stripe_price_id', priceId)
+    .single();
+
+  if (error || !plan) {
+    console.error('Error fetching plan:', error);
+    return 'trial';
+  }
+
+  return plan.access_type;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-
-  const sig = req.headers['stripe-signature'] as string;
-  const buf = await buffer(req);
-
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      buf,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    return res.status(400).json({ error: 'Webhook error' });
+    return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
-    if (event.type === 'customer.subscription.updated' ||
-        event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object;
-      
-      const { data: subscriptionData, error: subscriptionError } = await supabaseAdmin
-        .from('subscriptions')
-        .select('*')
-        .eq('stripe_customer_id', subscription.customer)
-        .single();
+    const buf = await buffer(req);
+    const sig = req.headers['stripe-signature']!;
 
-      if (subscriptionError || !subscriptionData) {
-        return res.status(400).json({ error: 'Subscription not found' });
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return res.status(400).json({ message: 'Webhook signature verification failed' });
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const customerId = session.customer as string;
+        const subscriptionId = session.subscription as string;
+
+        // Get subscription details to determine the plan
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const planId = subscription.items.data[0].price.id;
+
+        // Get access type from plans table
+        const accessType = await getAccessTypeFromPriceId(planId);
+
+        // Get user_id from customer metadata
+        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+        const userId = customer.metadata?.user_id;
+
+        if (!userId) {
+          console.error('No user_id found in customer metadata');
+          return res.status(400).json({ message: 'No user_id found in customer metadata' });
+        }
+
+        // Update user access in database
+        const { error: updateError } = await supabase
+          .from('user_access')
+          .upsert({
+            user_id: userId,
+            access_type: accessType,
+            start_date: new Date().toISOString(),
+            stripe_subscription_id: subscriptionId,
+            stripe_customer_id: customerId
+          });
+
+        if (updateError) {
+          console.error('Error updating user access:', updateError);
+          return res.status(500).json({ message: 'Error updating user access' });
+        }
+        break;
       }
 
-      const { error: updateError } = await supabaseAdmin
-        .from('subscriptions')
-        .update({
-          status: subscription.status,
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        })
-        .eq('stripe_customer_id', subscription.customer);
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+        const subscriptionId = subscription.id;
+        const planId = subscription.items.data[0].price.id;
 
-      if (updateError) {
-        return res.status(500).json({ error: 'Update failed' });
+        // Get access type from plans table
+        const accessType = await getAccessTypeFromPriceId(planId);
+
+        // Get user_id from customer metadata
+        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+        const userId = customer.metadata?.user_id;
+
+        if (!userId) {
+          console.error('No user_id found in customer metadata');
+          return res.status(400).json({ message: 'No user_id found in customer metadata' });
+        }
+
+        // Update user access
+        const { error: updateError } = await supabase
+          .from('user_access')
+          .update({
+            access_type: accessType,
+            start_date: new Date().toISOString()
+          })
+          .eq('stripe_subscription_id', subscriptionId);
+
+        if (updateError) {
+          console.error('Error updating user access:', updateError);
+          return res.status(500).json({ message: 'Error updating user access' });
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const subscriptionId = subscription.id;
+
+        // Update user access to expired
+        const { error: updateError } = await supabase
+          .from('user_access')
+          .update({
+            access_type: 'expired',
+            start_date: new Date().toISOString()
+          })
+          .eq('stripe_subscription_id', subscriptionId);
+
+        if (updateError) {
+          console.error('Error updating user access:', updateError);
+          return res.status(500).json({ message: 'Error updating user access' });
+        }
+        break;
       }
     }
 
     res.json({ received: true });
-  } catch {
-    // Silent fail - webhook processing error
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.status(500).json({ message: 'Webhook handler failed' });
   }
 } 

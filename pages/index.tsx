@@ -596,7 +596,7 @@ export default function Home() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
               ) : (
-                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                   {plans.map((plan) => (
                     <div
                       key={plan.id}
@@ -615,7 +615,7 @@ export default function Home() {
                       )}
                       <div>
                         <h3 className="text-xl font-semibold mb-4">{plan.name}</h3>
-                        <p className="text-3xl font-bold mb-6">
+                        <p className="text-3xl font-bold mb-6 text-center">
                           R${plan.price}
                           {plan.price > 0 && (
                             <span className={`text-lg font-normal ${plan.is_popular ? 'opacity-75' : 'text-gray-600'}`}>
@@ -624,7 +624,7 @@ export default function Home() {
                           )}
                         </p>
                         {plan.yearly_price && (
-                          <div className={`text-sm mb-4 ${plan.is_popular ? 'text-white/80' : 'text-gray-600'}`}>
+                          <div className={`text-sm mb-4 text-center ${plan.is_popular ? 'text-white/80' : 'text-gray-600'}`}>
                             {plan.yearly_price}
                           </div>
                         )}
@@ -652,17 +652,16 @@ export default function Home() {
                         </ul>
                       </div>
                       <div className="mt-auto pt-8">
+                        <p className={`text-sm mb-3 text-center ${plan.is_popular ? 'text-white' : 'text-gray-500'}`}>3 dias grátis para testes</p>
                         <Link
-                          href={plan.price === 0 
-                            ? '/signup'
-                            : `/signup-with-plan?plan=${plan.stripe_price_id}`}
+                          href="/signup"
                           className={`w-full inline-block text-center py-3 rounded-full transition ${
                             plan.is_popular
                               ? 'bg-white text-[#0066FF] hover:bg-gray-50'
                               : 'border border-[#0066FF] text-[#0066FF] hover:bg-[#0066FF]/5'
                           }`}
                         >
-                          {plan.price === 0 ? 'Começar Grátis' : `Começar ${plan.name}`}
+                          Começar Grátis
                         </Link>
                       </div>
                     </div>
