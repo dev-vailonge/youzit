@@ -3,156 +3,93 @@ import { supabase } from "@/lib/supabase";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Header from "@/components/Header";
-import { AuthError, Session, User } from '@supabase/supabase-js';
-import { PostgrestSingleResponse } from '@supabase/supabase-js';
-
-interface UserAccess {
-  id: string;
-  user_id: string;
-  access_type: 'trial' | 'expired' | 'active';
-  start_date: string;
-}
-
-interface CountResponse {
-  count: number | null;
-  error: AuthError | null;
-}
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { session_id } = router.query;
+  const { subscription_id } = router.query;
+  const [loading, setLoading] = useState(true);
   const [promptCount, setPromptCount] = useState(0);
   const [contentCount, setContentCount] = useState(0);
   const initializedRef = useRef(false);
 
   useEffect(() => {
     const initialize = async () => {
+      // Prevent duplicate initialization
+      if (initializedRef.current) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
+        initializedRef.current = true;
 
-        // If we have a session_id, fetch and update subscription status
-        if (session_id) {
-          const response = await fetch(`/api/subscriptions/get-current?session_id=${session_id}`);
-          if (!response.ok) {
-            console.error('Error fetching subscription status:', await response.text());
-          }
-          // Remove the session_id from URL
-          router.replace('/dashboard', undefined, { shallow: true });
-        }
-
-        // Continue with existing checks
+        // Get authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
           router.push('/signin');
           return;
         }
 
-        // Check and update access first
+        // Only fetch subscription status if we have a subscription_id
+        if (subscription_id) {
+          const response = await fetch(`/api/subscriptions/get-current?subscription_id=${subscription_id}`);
+          if (!response.ok) {
+            console.error('Error checking subscription status:', await response.text());
+          }
+          // Remove the subscription_id from URL
+          router.replace('/dashboard', undefined, { shallow: true });
+        }
+
+        // Continue with existing checks
         const { data: accessData, error: accessError } = await supabase
           .from('user_access')
           .select('*')
           .eq('user_id', user.id)
-          .order('start_date', { ascending: false })
-          .limit(1)
           .single();
 
-        if (accessError && accessError.code !== 'PGRST116') {
-          console.error('Error fetching access:', accessError);
+        if (accessError || !accessData) {
+          // Create trial access if none exists
+          const { error: trialError } = await supabase
+            .from('user_access')
+            .insert({
+              user_id: user.id,
+              access_type: 'trial',
+              start_date: new Date().toISOString(),
+              status: 'active'
+            });
+
+          if (trialError) {
+            console.error('Error creating trial access:', trialError);
+          }
+        } else if (accessData.accessType === 'expired' || accessData.status === 'expired') {
+          router.push('/pricing');
           return;
         }
 
-        const now = new Date();
-
-        if (!accessData) {
-          // Create trial access since no previous access exists
-          const { error: insertError } = await supabase
-            .from('user_access')
-            .upsert([{
-              user_id: user.id,
-              access_type: 'trial',
-              start_date: now.toISOString()
-            }]);
-
-          if (insertError) {
-            console.error('Error creating trial access:', insertError);
-            return;
-          }
-        } else {
-          const typedAccessData = accessData as UserAccess;
-          
-          // Check if trial has expired (more than 3 days)
-          if (typedAccessData.access_type === 'trial') {
-            const startDate = new Date(typedAccessData.start_date);
-            const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-
-            if (daysDiff > 3) {
-              const { error: updateError } = await supabase
-                .from('user_access')
-                .update({ access_type: 'expired' })
-                .eq('id', typedAccessData.id);
-
-              if (updateError) {
-                console.error('Error updating access:', updateError);
-              }
-              router.push('/pricing');
-              return;
-            }
-          }
-
-          // If access is expired, redirect to pricing
-          if (typedAccessData.access_type === 'expired') {
-            router.push('/pricing');
-            return;
-          }
-        }
-
-        // Fetch counts in parallel only if access is valid
-        const [promptResult, contentResult] = await Promise.all([
+        // Fetch counts
+        const [promptsResponse, contentResponse] = await Promise.all([
           supabase
-            .from("user_prompts")
-            .select("prompt_text", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("hidden", false),
+            .from('user_prompts')
+            .select('id', { count: 'exact' })
+            .eq('user_id', user.id),
           supabase
-            .from("content_board")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("hidden", false)
+            .from('content_boards')
+            .select('id', { count: 'exact' })
+            .eq('user_id', user.id)
         ]);
 
-        if (promptResult.error) throw promptResult.error;
-        if (contentResult.error) throw contentResult.error;
-
-        setPromptCount(promptResult.count || 0);
-        setContentCount(contentResult.count || 0);
-        
-        // Mark as initialized
-        initializedRef.current = true;
-      } catch (error: unknown) {
+        setPromptCount(promptsResponse.count || 0);
+        setContentCount(contentResponse.count || 0);
+      } catch (error) {
         console.error('Error initializing dashboard:', error);
-        router.push('/signin');
       } finally {
         setLoading(false);
       }
     };
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: string, session: Session | null) => {
-        if (event === 'SIGNED_OUT') {
-          initializedRef.current = false;
-        }
-      }
-    );
-
     initialize();
-
-    // Cleanup function
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [session_id, router]);
+  }, [subscription_id, router]);
 
   if (loading) {
     return (

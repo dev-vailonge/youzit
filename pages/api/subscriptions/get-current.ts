@@ -15,25 +15,17 @@ export default async function handler(
   }
 
   try {
-    const { session_id } = req.query;
+    const { subscription_id } = req.query;
 
-    if (!session_id) {
-      return res.status(400).json({ error: 'Session ID is required' });
+    if (!subscription_id) {
+      return res.status(400).json({ error: 'Subscription ID is required' });
     }
 
-    // Get the checkout session to get the subscription ID
-    const session = await stripe.checkout.sessions.retrieve(session_id as string, {
-      expand: ['subscription']
-    });
-
-    if (!session.subscription) {
-      return res.status(404).json({ error: 'No subscription found for this session' });
-    }
-
-    const subscription = session.subscription as Stripe.Subscription;
+    // Get subscription directly
+    const subscription = await stripe.subscriptions.retrieve(subscription_id as string);
     const customerId = subscription.customer as string;
 
-    // Get customer details to get user_id from metadata
+    // Get customer to get user_id
     const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
     const userId = customer.metadata?.user_id;
 
@@ -53,7 +45,19 @@ export default async function handler(
       return res.status(500).json({ error: 'Error fetching plan details' });
     }
 
-    // Update user_access table
+    // First check if user has existing access
+    const { data: existingAccess, error: existingError } = await supabase
+      .from('user_access')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (existingError && existingError.code !== 'PGRST116') { // PGRST116 is "not found"
+      console.error('Error checking existing access:', existingError);
+      return res.status(500).json({ error: 'Error checking existing access' });
+    }
+
+    // Update or insert user_access
     const { error: accessError } = await supabase
       .from('user_access')
       .upsert({
@@ -64,7 +68,7 @@ export default async function handler(
         stripe_customer_id: customerId,
         start_date: new Date(subscription.start_date * 1000).toISOString(),
       }, {
-        onConflict: 'user_id'
+        onConflict: existingAccess ? 'user_id' : 'stripe_subscription_id'
       });
 
     if (accessError) {
