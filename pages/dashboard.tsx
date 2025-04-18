@@ -21,22 +21,29 @@ interface CountResponse {
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { session_id } = router.query;
   const [promptCount, setPromptCount] = useState(0);
   const [contentCount, setContentCount] = useState(0);
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    const initializeDashboard = async () => {
-      // Prevent duplicate initialization
-      if (initializedRef.current) {
-        setLoading(false);
-        return;
-      }
-
+    const initialize = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user) {
+        setLoading(true);
+
+        // If we have a session_id, fetch and update subscription status
+        if (session_id) {
+          const response = await fetch(`/api/subscriptions/get-current?session_id=${session_id}`);
+          if (!response.ok) {
+            console.error('Error fetching subscription status:', await response.text());
+          }
+          // Remove the session_id from URL
+          router.replace('/dashboard', undefined, { shallow: true });
+        }
+
+        // Continue with existing checks
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
           router.push('/signin');
           return;
         }
@@ -139,13 +146,13 @@ export default function Dashboard() {
       }
     );
 
-    initializeDashboard();
+    initialize();
 
     // Cleanup function
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [session_id, router]);
 
   if (loading) {
     return (
